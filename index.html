@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Central Comercial</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F4F6F5;--surface:#FFFFFF;--surface-2:#F9FAFA;--ink:#1D2321;--muted:#66706B;--faint:#8C9590;
+  --line:#E2E6E4;--line-strong:#CBD2CE;--nav:#1D2321;--nav-ink:#E9EEEB;--nav-muted:#97A39D;--nav-hover:#2A322F;
+  --accent:#17714F;--accent-ink:#FFFFFF;--accent-soft:#E4F1EA;--accent-line:#B9DCC9;
+  --good:#1F8A5B;--warn:#B7791F;--warn-soft:#FBF1DE;--crit:#C0432F;--crit-soft:#FBE7E3;--info:#3C6E9E;--info-soft:#E5EEF7;
+  --bubble-in:#FFFFFF;--bubble-out:#DFF0E6;--bubble-note:#FFF6DC;--chat-bg:#EEF2F0;
+  --shadow:0 1px 2px rgba(20,30,25,.06),0 4px 16px rgba(20,30,25,.05);
+  --font:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#111513;--surface:#181D1B;--surface-2:#1C2220;--ink:#E6EBE8;--muted:#9AA49F;--faint:#77817C;
+  --line:#2A312E;--line-strong:#3A433F;--nav:#0C0F0E;--nav-ink:#E6EBE8;--nav-muted:#86918B;--nav-hover:#1C2321;
+  --accent:#3DB487;--accent-ink:#0C1511;--accent-soft:#17302A;--accent-line:#2B5847;
+  --good:#45C08E;--warn:#E0A84A;--warn-soft:#3A2E17;--crit:#EE7A63;--crit-soft:#3D211B;--info:#7FB0DE;--info-soft:#1C2B39;
+  --bubble-in:#1F2624;--bubble-out:#1B3A2E;--bubble-note:#3A3218;--chat-bg:#141917;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
+#app{height:100%}
+.app{display:grid;grid-template-columns:220px minmax(0,1fr);height:100%}
+.nav{background:var(--nav);color:var(--nav-ink);display:flex;flex-direction:column;padding:18px 12px;gap:4px;min-height:0;overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 8px 18px}
+.mark{width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700;font-size:13px}
+.brand b{display:block;font-size:13.5px;font-weight:600}.brand span{display:block;font-size:11.5px;color:var(--nav-muted)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--nav-muted);background:none;border:0;cursor:pointer;width:100%;text-align:left;font-size:13.5px}
+.nav-item:hover{background:var(--nav-hover);color:var(--nav-ink)}
+.nav-item.on{background:var(--nav-hover);color:var(--nav-ink);box-shadow:inset 2px 0 0 var(--accent)}
+.nav-item .count{margin-left:auto;font-family:var(--mono);font-size:11px;background:var(--accent);color:var(--accent-ink);border-radius:20px;padding:1px 7px}
+.foot{margin-top:auto;padding:12px 8px 0;border-top:1px solid var(--nav-hover);display:grid;gap:8px}
+.foot b{font-size:13px}.foot small{color:var(--nav-muted);font-size:11.5px}
+.status{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.status button{border:1px solid var(--nav-hover);background:none;color:var(--nav-muted);border-radius:6px;padding:5px 4px;font-size:11.5px;cursor:pointer;display:flex;gap:5px;align-items:center;justify-content:center}
+.status button.on{color:var(--nav-ink);border-color:var(--nav-muted)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.linkbtn{background:none;border:0;color:var(--nav-muted);cursor:pointer;font-size:12px;text-align:left;padding:4px 0}
+.main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.top{display:flex;align-items:center;gap:12px;padding:14px 22px;border-bottom:1px solid var(--line);background:var(--surface);flex-wrap:wrap}
+.top h1{font-size:17px;font-weight:600;margin:0}.top .sub{color:var(--muted);font-size:12.5px}.grow{flex:1}
+.view{flex:1;min-height:0;overflow:auto}
+.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-strong);background:var(--surface);border-radius:8px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:500;white-space:nowrap;color:var(--ink)}
+.btn:hover{background:var(--surface-2)}.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.sm{padding:4px 9px;font-size:12px}.btn[disabled]{opacity:.5;cursor:not-allowed}
+.inp{width:100%;border:1px solid var(--line-strong);background:var(--surface);border-radius:8px;padding:7px 10px;font-size:13.5px;min-width:0}
+.inp:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.inp.sm{padding:5px 8px;font-size:12.5px}
+textarea.inp{resize:vertical}
+.field{display:grid;gap:4px;min-width:0}
+.field label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.chip{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:2px 9px;font-size:11.5px;font-weight:500;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.warn{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
+.chip.crit{background:var(--crit-soft);border-color:transparent;color:var(--crit)}
+.chip.accent{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;padding:2px;background:var(--surface-2);gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:4px 10px;border-radius:6px;font-size:12.5px;cursor:pointer;color:var(--muted)}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);font-weight:500}
+.empty{display:grid;place-items:center;text-align:center;gap:6px;padding:40px 20px;color:var(--muted)}
+.empty b{color:var(--ink)}
+.avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;flex:none;background:var(--accent-soft);color:var(--accent)}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
+/* login */
+.login{height:100%;display:grid;place-items:center;padding:20px}
+.login .card{width:min(380px,100%);padding:28px;display:grid;gap:14px}
+.login h1{margin:0;font-size:19px}
+.err{color:var(--crit);font-size:13px}
+/* inbox */
+.inbox{display:grid;grid-template-columns:320px minmax(0,1fr) 330px;height:100%}
+.pane{min-height:0;min-width:0;display:flex;flex-direction:column}
+.list{border-right:1px solid var(--line);background:var(--surface)}
+.crm{border-left:1px solid var(--line);background:var(--surface);overflow:auto}
+.lhead{padding:12px;display:grid;gap:10px;border-bottom:1px solid var(--line)}
+.convs{overflow:auto;flex:1}
+.conv{display:flex;gap:10px;padding:11px 12px;border:0;border-bottom:1px solid var(--line);cursor:pointer;width:100%;background:none;text-align:left}
+.conv:hover{background:var(--surface-2)}.conv.on{background:var(--accent-soft)}
+.cbody{min-width:0;flex:1;display:grid;gap:2px}
+.ctop{display:flex;gap:6px;align-items:baseline}.ctop b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.ctime{font-size:11px;color:var(--faint);font-family:var(--mono)}
+.cmsg{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.badge{min-width:19px;height:19px;border-radius:10px;background:var(--accent);color:var(--accent-ink);font-size:11px;font-family:var(--mono);display:grid;place-items:center;padding:0 5px}
+.chat{background:var(--chat-bg)}
+.chead{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.chead .who{flex:1;min-width:0}.chead b{display:block}.chead span{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.msgs{flex:1;overflow:auto;padding:16px max(14px,3vw);display:flex;flex-direction:column;gap:6px}
+.day{align-self:center;font-size:11px;color:var(--muted);background:var(--surface);border-radius:20px;padding:2px 10px;margin:8px 0;border:1px solid var(--line)}
+.bub{max-width:min(72%,560px);padding:7px 11px 5px;border-radius:10px;font-size:13.5px;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 1px 1px rgba(0,0,0,.05)}
+.bub.in{align-self:flex-start;background:var(--bubble-in)}.bub.out{align-self:flex-end;background:var(--bubble-out)}
+.bub.note{align-self:center;background:var(--bubble-note);border:1px dashed var(--warn);font-size:13px}
+.bub.fail{border:1px solid var(--crit)}
+.meta{display:flex;gap:6px;justify-content:flex-end;font-size:10.5px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
+.composer{background:var(--surface);border-top:1px solid var(--line);padding:10px 14px 12px;display:grid;gap:8px}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sec{padding:14px 16px;border-bottom:1px solid var(--line);display:grid;gap:10px}
+.sec h3{margin:0;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px}.kv .full{grid-column:1/-1}
+.tl{display:grid;gap:6px;font-size:12px}.tl small{display:block;color:var(--faint);font-family:var(--mono);font-size:10.5px}
+.back{display:none}
+/* kanban */
+.kanban{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(240px,1fr);gap:12px;padding:16px 22px;overflow-x:auto;align-items:start;min-height:100%}
+.col{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;max-height:calc(100vh - 120px)}
+.col.over{border-color:var(--accent);background:var(--accent-soft)}
+.colh{padding:10px 12px;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--line)}.colh b{font-size:13px}.colh .mono{margin-left:auto;color:var(--muted);font-size:12px}
+.cards{padding:10px;display:grid;gap:8px;overflow:auto}
+.kc{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px;display:grid;gap:5px;cursor:grab}
+.kc.prio{box-shadow:inset 3px 0 0 var(--crit)}.kc b{font-size:13.5px}.kc .l{font-size:12px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:9px 12px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+td{padding:10px 12px;border-bottom:1px solid var(--line)}
+.pad{padding:20px 22px}
+.scrim{position:fixed;inset:0;background:rgba(10,16,13,.42);display:grid;place-items:center;padding:20px;z-index:50}
+.modal{background:var(--surface);border-radius:12px;width:min(440px,100%);padding:20px;display:grid;gap:12px}
+.modal h2{margin:0;font-size:16px}
+.toasts{position:fixed;right:16px;bottom:16px;display:grid;gap:8px;z-index:60}
+.toast{background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:8px;font-size:13px;max-width:360px}
+.toast.err{background:var(--crit);color:#fff}
+@media (max-width:1180px){.inbox{grid-template-columns:300px minmax(0,1fr)}.inbox .crm{display:none}.inbox.showcrm .crm{display:flex;position:fixed;right:0;top:0;bottom:0;width:min(360px,100%);z-index:40}}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}
+  .nav{flex-direction:row;align-items:center;overflow-x:auto;padding:8px 12px}
+  .brand div,.nav-item .t,.foot{display:none}.brand{padding:0 6px 0 0}.nav-item{width:auto;flex:none}
+  .inbox{grid-template-columns:1fr}.inbox .chat{display:none}.inbox.sel .list{display:none}.inbox.sel .chat{display:flex}
+  .back{display:inline-flex}.kv{grid-template-columns:1fr}.top{padding:12px 16px}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modal"></div>
+<div class="toasts" id="toasts"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(function(){
+"use strict";
+const SUPABASE_URL='https://nxdyfalatzyteuapdpei.supabase.co';
+const SUPABASE_KEY='sb_publishable_l9ZbAf74UtwCXjMSPO7H5w_qvV_SvBH';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+
+const STAGES=[['primeiro','Primeiro atendimento','var(--info)'],['qualificacao','Qualificação','var(--info)'],['frio','Lead frio','var(--faint)'],['quente','Lead quente','var(--warn)'],['negociacao','Em negociação','var(--warn)'],['followup','Follow-up','var(--info)'],['ganho','Ganho','var(--good)'],['perdido','Perdido','var(--crit)']];
+const ST=Object.fromEntries(STAGES.map(s=>[s[0],{name:s[1],c:s[2]}]));
+const STATUS={online:['Online','var(--good)'],ocupado:['Ocupado','var(--warn)'],ausente:['Ausente','var(--info)'],offline:['Offline','var(--faint)']};
+const CLOSED=['ganho','perdido'];
+const S={session:null,me:null,agents:[],leads:[],msgs:[],hist:[],sel:null,view:'inbox',filter:'abertas',q:'',owner:'all',draft:'',mode:'out',modal:null,showCrm:false,loading:true,err:'',chans:[],msgChan:null,drag:null};
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const H=3600e3;
+function t(ts){return ts?new Date(ts).getTime():0}
+function fTime(ts){if(!ts)return'';const d=new Date(ts),n=new Date();if(d.toDateString()===n.toDateString())return pad(d.getHours())+':'+pad(d.getMinutes());return pad(d.getDate())+'/'+pad(d.getMonth()+1)}
+function fDT(ts){if(!ts)return'—';const d=new Date(ts);return pad(d.getDate())+'/'+pad(d.getMonth()+1)+' '+pad(d.getHours())+':'+pad(d.getMinutes())}
+function fD(ts){if(!ts)return'';const d=new Date(ts);return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()}
+function rel(ts){if(!ts)return'—';const d=Date.now()-t(ts);if(d<6e4)return'agora';if(d<H)return Math.floor(d/6e4)+' min';if(d<24*H)return Math.floor(d/H)+' h';return Math.floor(d/24/H)+' d'}
+function phone(p){const d=String(p||'').replace(/\D/g,'');if(d.startsWith('55')&&d.length>=12){const a=d.slice(2,4),r=d.slice(4);return'+55 ('+a+') '+(r.length===9?r.slice(0,5)+'-'+r.slice(5):r.slice(0,4)+'-'+r.slice(4))}return d?'+'+d:''}
+function initials(n){return String(n||'?').trim().split(/\s+/).slice(0,2).map(p=>p[0]||'').join('').toUpperCase()||'?'}
+function toast(m,err){const e=document.createElement('div');e.className='toast'+(err?' err':'');e.textContent=m;$('#toasts').appendChild(e);setTimeout(()=>e.remove(),err?6000:3000)}
+function agentName(id){const a=S.agents.find(x=>x.id===id);return a?a.name:'Sem responsável'}
+const isAdmin=()=>S.me&&S.me.role==='admin';
+const windowOpen=l=>l&&l.last_in_at&&Date.now()-t(l.last_in_at)<24*H;
+const waiting=l=>t(l.last_in_at)>t(l.last_out_at)&&!CLOSED.includes(l.stage);
+
+/* ---------- data ---------- */
+async function loadAll(){
+  const [{data:ag},{data:ld}]=await Promise.all([sb.from('crm_agents').select('*').order('queue_position',{nullsFirst:false}),sb.from('crm_leads').select('*').order('last_msg_at',{ascending:false,nullsFirst:false}).limit(1000)]);
+  S.agents=ag||[];S.leads=ld||[];S.me=S.agents.find(a=>a.user_id===S.session.user.id)||null;
+}
+function upsertLead(row){const i=S.leads.findIndex(l=>l.id===row.id);if(i>=0)S.leads[i]=row;else S.leads.unshift(row);S.leads.sort((a,b)=>t(b.last_msg_at)-t(a.last_msg_at))}
+function subscribe(){
+  S.chans.forEach(c=>sb.removeChannel(c));S.chans=[];
+  S.chans.push(sb.channel('crm-leads').on('postgres_changes',{event:'*',schema:'public',table:'crm_leads'},p=>{
+    if(p.eventType==='DELETE'){S.leads=S.leads.filter(l=>l.id!==p.old.id)}else{
+      const was=S.leads.find(l=>l.id===p.new.id);
+      upsertLead(p.new);
+      if(!was&&p.new.owner_id===S.me.id){toast('Novo lead: '+(p.new.name||phone(p.new.phone)));notify(p.new)}
+      if(was&&p.new.unread>was.unread&&p.new.id!==S.sel)notify(p.new)}
+    schedule()}).subscribe());
+  S.chans.push(sb.channel('crm-agents').on('postgres_changes',{event:'*',schema:'public',table:'crm_agents'},p=>{const i=S.agents.findIndex(a=>a.id===p.new.id);if(i>=0)S.agents[i]=p.new;if(p.new.id===S.me.id)S.me=p.new;schedule()}).subscribe());
+}
+function notify(l){try{if(document.hidden&&'Notification' in window&&Notification.permission==='granted')new Notification('Central Comercial',{body:(l.name||phone(l.phone))+': '+(l.last_msg||'nova mensagem')})}catch(e){}}
+async function openLead(id){
+  S.sel=id;S.view='inbox';S.showCrm=false;S.draft='';S.mode='out';S.msgs=[];S.hist=[];render();
+  if(S.msgChan){sb.removeChannel(S.msgChan);S.msgChan=null}
+  const [{data:m},{data:a},{data:h}]=await Promise.all([
+    sb.from('crm_messages').select('*').eq('lead_id',id).order('created_at').limit(1000),
+    sb.from('crm_assignments').select('*').eq('lead_id',id).order('created_at',{ascending:false}),
+    sb.from('crm_stage_history').select('*').eq('lead_id',id).order('created_at',{ascending:false})]);
+  if(S.sel!==id)return;
+  S.msgs=m||[];S.hist=[...(a||[]).map(x=>({...x,k:'a'})),...(h||[]).map(x=>({...x,k:'s'}))].sort((x,y)=>t(y.created_at)-t(x.created_at));
+  S.msgChan=sb.channel('msgs-'+id).on('postgres_changes',{event:'*',schema:'public',table:'crm_messages',filter:'lead_id=eq.'+id},p=>{
+    const i=S.msgs.findIndex(x=>x.id===p.new.id);if(i>=0)S.msgs[i]=p.new;else S.msgs.push(p.new);S.scroll=true;schedule()}).subscribe();
+  S.scroll=true;render();
+  const l=S.leads.find(x=>x.id===id);if(l&&l.unread&&l.owner_id===S.me.id)sb.rpc('crm_mark_read',{p_lead:id});
+}
+
+/* ---------- render ---------- */
+let raf=0;function schedule(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;render()})}
+function render(){
+  const ae=document.activeElement,id=ae&&ae.id,ss=ae&&ae.selectionStart,se=ae&&ae.selectionEnd,val=ae&&id&&/INPUT|TEXTAREA/.test(ae.tagName)?ae.value:null;
+  const keep={};document.querySelectorAll('[data-keep]').forEach(e=>keep[e.dataset.keep]=e.scrollTop);
+  $('#app').innerHTML=shell();
+  document.querySelectorAll('[data-keep]').forEach(e=>{if(keep[e.dataset.keep]!=null)e.scrollTop=keep[e.dataset.keep]});
+  if(id){const e=document.getElementById(id);if(e){if(val!=null)e.value=val;e.focus();try{e.setSelectionRange(ss,se)}catch(x){}}}
+  const m=document.querySelector('.msgs');if(m&&S.scroll){m.scrollTop=m.scrollHeight;S.scroll=false}
+  $('#modal').innerHTML=S.modal?modal():'';
+}
+function shell(){
+  if(S.loading)return'<div class="login"><div class="empty">Carregando…</div></div>';
+  if(!S.session)return loginView();
+  if(!S.me)return'<div class="login"><div class="card"><h1>Sem acesso ao CRM</h1><p class="muted">Seu login existe, mas ainda não foi incluído na equipe da Central Comercial. Peça ao administrador.</p><button class="btn" data-act="logout">Sair</button></div></div>';
+  const vis=visible();const unread=vis.filter(l=>l.unread).length;
+  const nav=[['inbox','Caixa de entrada','💬'],['funil',isAdmin()?'Funil':'Meu funil','▦'],['equipe','Equipe','👥']].map(([v,n,i])=>'<button class="nav-item'+(S.view===v?' on':'')+'" data-act="nav" data-v="'+v+'"><span aria-hidden="true">'+i+'</span><span class="t">'+n+'</span>'+(v==='inbox'&&unread?'<span class="count">'+unread+'</span>':'')+'</button>').join('');
+  const st=S.me.status||'offline';
+  const statusBtns=S.me.in_queue?'<div class="status">'+Object.entries(STATUS).map(([k,[n,c]])=>'<button data-act="status" data-v="'+k+'" class="'+(st===k?'on':'')+'"><span class="dot" style="background:'+c+'"></span>'+n+'</button>').join('')+'</div>':'';
+  const titles={inbox:['Caixa de entrada',isAdmin()?'Todas as conversas do número de vendas':'Suas conversas'],funil:[isAdmin()?'Funil comercial':'Meu funil','Arraste os cartões entre as etapas'],equipe:['Equipe','Fila automática de distribuição']};
+  const [h,sub]=titles[S.view];
+  const ownerSel=isAdmin()&&S.view!=='equipe'?'<select class="inp sm" id="ownerf" data-change="owner" style="width:auto"><option value="all">Todos</option>'+S.agents.filter(a=>a.in_queue).map(a=>'<option value="'+a.id+'"'+(S.owner===a.id?' selected':'')+'>'+esc(a.name)+'</option>').join('')+'<option value="none"'+(S.owner==='none'?' selected':'')+'>Sem responsável</option></select>':'';
+  return'<div class="app"><aside class="nav"><div class="brand"><div class="mark">CC</div><div><b>Central Comercial</b><span>Número de vendas</span></div></div>'+nav+
+   '<div class="foot"><b>'+esc(S.me.name)+'</b><small>'+(isAdmin()?'Administrador':'Na fila de atendimento')+'</small>'+statusBtns+'<button class="linkbtn" data-act="notif">Ativar notificações</button><button class="linkbtn" data-act="logout">Sair</button></div></aside>'+
+   '<main class="main"><header class="top"><div><h1>'+h+'</h1><div class="sub">'+sub+'</div></div><div class="grow"></div>'+ownerSel+(S.me.in_queue&&st!=='online'?'<span class="chip warn">Você está '+STATUS[st][0].toLowerCase()+' e não recebe leads novos</span>':'')+'</header>'+
+   '<section class="view">'+(S.view==='inbox'?inbox():S.view==='funil'?funil():equipe())+'</section></main></div>';
+}
+function loginView(){
+  return'<div class="login"><form class="card" id="loginform"><div class="row"><div class="mark">CC</div><h1>Central Comercial</h1></div><p style="margin:0;color:var(--muted)">Entre com o mesmo e-mail e senha do CRM.</p>'+
+  '<div class="field"><label for="email">E-mail</label><input class="inp" id="email" type="email" autocomplete="username" required></div>'+
+  '<div class="field"><label for="pass">Senha</label><input class="inp" id="pass" type="password" autocomplete="current-password" required></div>'+
+  (S.err?'<div class="err">'+esc(S.err)+'</div>':'')+'<button class="btn pri" type="submit">Entrar</button></form></div>';
+}
+function visible(){let L=S.leads;if(isAdmin()&&S.owner!=='all')L=L.filter(l=>S.owner==='none'?!l.owner_id:l.owner_id===S.owner);return L}
+function convItem(l){
+  const silent=t(l.last_out_at)>t(l.last_in_at)&&!CLOSED.includes(l.stage)?(Date.now()-t(l.last_out_at))/H:0;
+  return'<button class="conv'+(S.sel===l.id?' on':'')+'" data-act="open" data-id="'+l.id+'"><div class="avatar">'+esc(initials(l.name||'?'))+'</div><div class="cbody"><div class="ctop"><b>'+esc(l.name||phone(l.phone))+'</b><span class="ctime">'+fTime(l.last_msg_at)+'</span></div>'+
+  '<div class="row" style="flex-wrap:nowrap"><span class="cmsg">'+esc(l.last_msg||'')+'</span>'+(l.unread?'<span class="badge">'+l.unread+'</span>':'')+'</div>'+
+  '<div class="row" style="gap:5px"><span class="chip"><span class="dot" style="background:'+ST[l.stage].c+'"></span>'+ST[l.stage].name+'</span>'+(isAdmin()?'<span class="chip">'+esc(agentName(l.owner_id))+'</span>':'')+(waiting(l)?'<span class="chip warn">Aguardando resposta</span>':'')+(silent>=24?'<span class="chip crit">'+Math.floor(silent)+' h sem retorno</span>':'')+(l.priority?'<span class="chip crit">Prioridade</span>':'')+'</div></div></button>';
+}
+function inbox(){
+  const q=S.q.toLowerCase();let L=visible();
+  if(q)L=L.filter(l=>(l.name||'').toLowerCase().includes(q)||l.phone.includes(q.replace(/\D/g,'')||'@@')||(l.last_msg||'').toLowerCase().includes(q));
+  if(S.filter==='abertas')L=L.filter(l=>!CLOSED.includes(l.stage));
+  if(S.filter==='naolidas')L=L.filter(l=>l.unread);
+  if(S.filter==='aguardando')L=L.filter(waiting);
+  if(S.filter==='encerradas')L=L.filter(l=>CLOSED.includes(l.stage));
+  const sel=S.leads.find(l=>l.id===S.sel);
+  return'<div class="inbox'+(sel?' sel':'')+(S.showCrm?' showcrm':'')+'"><div class="pane list"><div class="lhead"><input class="inp" id="q" placeholder="Buscar nome, telefone ou mensagem" value="'+esc(S.q)+'" data-input="q">'+
+   '<div class="seg">'+[['abertas','Abertas'],['naolidas','Não lidas'],['aguardando','Aguardando'],['encerradas','Encerradas']].map(([k,n])=>'<button data-act="filter" data-v="'+k+'" class="'+(S.filter===k?'on':'')+'">'+n+'</button>').join('')+'</div></div>'+
+   '<div class="convs" data-keep="convs">'+(L.slice(0,300).map(convItem).join('')||'<div class="empty"><b>Nenhuma conversa</b><span>Quando um cliente chamar o número de vendas e cair com você, a conversa aparece aqui.</span></div>')+'</div></div>'+
+   (sel?chat(sel)+ficha(sel):'<div class="pane chat"><div class="empty" style="margin:auto"><b>Selecione uma conversa</b></div></div><div class="pane crm"></div>')+'</div>';
+}
+function chat(l){
+  let last='';const body=S.msgs.map(m=>{let h='';const d=fD(m.created_at);if(d!==last){last=d;h+='<div class="day">'+d+'</div>'}
+    const cls=m.direction==='in'?'in':m.direction==='note'?'note':'out';
+    h+='<div class="bub '+cls+(m.status==='failed'?' fail':'')+'">'+(m.direction==='note'?'<div style="font-size:11px;font-weight:600;color:var(--warn)">Nota interna · '+esc(agentName(m.sent_by))+'</div>':'')+esc(m.body||'['+m.msg_type+']')+
+      '<div class="meta">'+(m.direction==='out'&&isAdmin()&&m.sent_by?esc(agentName(m.sent_by))+' · ':'')+fTime(m.created_at)+(m.direction==='out'?' · '+({sent:'enviada',delivered:'entregue',read:'lida',failed:'falhou'}[m.status]||''):'')+'</div>'+(m.error?'<div style="color:var(--crit);font-size:11.5px">'+esc(m.error)+'</div>':'')+'</div>';return h}).join('');
+  const open=windowOpen(l);const left=open?24*H-(Date.now()-t(l.last_in_at)):0;
+  const mine=isAdmin()||l.owner_id===S.me.id;
+  return'<div class="pane chat"><div class="chead"><button class="btn sm back" data-act="back">←</button><div class="avatar">'+esc(initials(l.name||'?'))+'</div><div class="who"><b>'+esc(l.name||'Cliente sem nome')+'</b><span>'+phone(l.phone)+'</span></div>'+
+   '<select class="inp sm" id="stagesel" data-change="stage" style="width:auto">'+STAGES.map(s=>'<option value="'+s[0]+'"'+(l.stage===s[0]?' selected':'')+'>'+s[1]+'</option>').join('')+'</select><button class="btn sm" data-act="togglecrm">Ficha</button></div>'+
+   '<div class="msgs" data-keep="msgs">'+(body||'<div class="empty" style="margin:auto">Carregando mensagens…</div>')+'</div>'+
+   (mine?'<div class="composer"><div class="bar"><div class="seg">'+[['out','Responder'],['note','Nota interna']].map(([k,n])=>'<button data-act="mode" data-v="'+k+'" class="'+(S.mode===k?'on':'')+'">'+n+'</button>').join('')+'</div>'+
+   '<span style="font-size:12px;color:'+(open?'var(--good)':'var(--warn)')+'">'+(open?'Janela de 24 h aberta · '+Math.floor(left/H)+' h '+Math.floor(left%H/6e4)+' min':'Janela de 24 h fechada · só modelo aprovado')+'</span></div>'+
+   (S.mode==='out'&&!open?'<div class="bar"><button class="btn pri" data-act="template">Enviar modelo de boas-vindas</button><span style="font-size:12px;color:var(--muted)">Quando o cliente responder, a janela abre e você conversa normalmente.</span></div>':
+   '<textarea class="inp" id="composer" rows="2" placeholder="'+(S.mode==='out'?'Escreva a mensagem (Ctrl+Enter envia)':'Nota interna, só a equipe vê')+'" data-input="draft">'+esc(S.draft)+'</textarea><div class="bar"><span class="grow"></span><button class="btn pri" data-act="send"'+(S.sending?' disabled':'')+'>'+(S.mode==='out'?'Enviar':'Salvar nota')+'</button></div>')+'</div>':'')+'</div>';
+}
+function ficha(l){
+  const f=(k,lab,type)=>'<div class="field"><label for="f-'+k+'">'+lab+'</label>'+(type==='area'?'<textarea class="inp sm" id="f-'+k+'" data-field="'+k+'" rows="3" placeholder="Não informado">'+esc(l[k]||'')+'</textarea>':'<input class="inp sm" id="f-'+k+'" data-field="'+k+'"'+(type?' type="'+type+'"':'')+' value="'+esc(l[k]??'')+'" placeholder="Não informado">')+'</div>';
+  const hist=S.hist.slice(0,15).map(h=>'<div>'+(h.k==='a'?(h.reason==='round_robin'?'Distribuído pela fila para ':h.reason==='retorno'?'Cliente voltou: ficou com ':'Transferido para ')+esc(agentName(h.to_agent))+(h.reason.startsWith('transferencia')&&h.reason.length>15?' ('+esc(h.reason.slice(15))+')':''):esc(ST[h.from_stage]?.name||'')+' → '+esc(ST[h.to_stage]?.name||'')+(h.note?' · '+esc(h.note):''))+'<small>'+fDT(h.created_at)+'</small></div>').join('');
+  return'<div class="pane crm" data-keep="crm"><div class="sec"><div class="row" style="justify-content:space-between"><h3>Ficha do cliente</h3><button class="btn sm" data-act="togglecrm">Fechar</button></div>'+
+   '<div class="row"><span class="chip accent">'+esc(agentName(l.owner_id))+'</span><span class="chip">desde '+fD(l.created_at)+'</span><button class="chip'+(l.priority?' crit':'')+'" data-act="prio" style="cursor:pointer">'+(l.priority?'Prioridade alta':'Marcar prioridade')+'</button></div>'+
+   '<div class="kv">'+f('name','Nome')+'<div class="field"><label>Telefone</label><div class="inp sm mono" style="background:var(--surface-2)">'+phone(l.phone)+'</div></div>'+
+   f('event_type','Tipo de evento')+f('event_date','Data do evento','date')+f('guests','Convidados','number')+f('budget','Orçamento (R$)','number')+f('proposal_value','Proposta (R$)','number')+f('source','Origem')+
+   '<div class="full">'+f('notes','Observações internas','area')+'</div></div>'+(l.stage==='perdido'?'<div class="chip crit">Motivo: '+esc(l.lost_reason||'')+'</div>':'')+(l.stage==='ganho'&&l.won_value?'<div class="chip accent">Contratado: R$ '+Number(l.won_value).toLocaleString('pt-BR')+'</div>':'')+'</div>'+
+   (isAdmin()?'<div class="sec"><h3>Transferir atendimento</h3><div class="row" style="flex-wrap:nowrap"><select class="inp sm" id="trto">'+S.agents.filter(a=>a.in_queue&&a.id!==l.owner_id).map(a=>'<option value="'+a.id+'">'+esc(a.name)+'</option>').join('')+'</select><button class="btn sm" data-act="transfer">Transferir</button></div></div>':'')+
+   '<div class="sec"><h3>Histórico</h3><div class="tl">'+(hist||'<span style="color:var(--faint)">Sem registros.</span>')+'</div></div></div>';
+}
+function funil(){
+  const L=visible();
+  return'<div class="kanban">'+STAGES.map(([k,n,c])=>{const cs=L.filter(l=>l.stage===k);
+    return'<div class="col" data-stage="'+k+'"><div class="colh"><span class="dot" style="background:'+c+'"></span><b>'+n+'</b><span class="mono">'+cs.length+'</span></div><div class="cards" data-keep="c-'+k+'">'+
+    cs.slice(0,80).map(l=>'<div class="kc'+(l.priority?' prio':'')+'" draggable="true" data-lead="'+l.id+'" data-act="open" data-id="'+l.id+'"><b>'+esc(l.name||phone(l.phone))+'</b><div class="l">'+(l.event_type?'<span>'+esc(l.event_type)+'</span>':'')+(l.guests?'<span>'+l.guests+' conv.</span>':'')+'<span>última msg '+rel(l.last_msg_at)+'</span><span>na etapa '+rel(l.stage_since)+'</span></div>'+(isAdmin()?'<span class="chip">'+esc(agentName(l.owner_id))+'</span>':'')+(waiting(l)?'<span class="chip warn">Aguardando resposta</span>':'')+'</div>').join('')+
+    (cs.length>80?'<div style="font-size:12px;color:var(--muted);text-align:center">+'+(cs.length-80)+' leads</div>':'')+'</div></div>'}).join('')+'</div>';
+}
+function equipe(){
+  const q=S.agents.filter(a=>a.in_queue).sort((a,b)=>a.queue_position-b.queue_position);
+  return'<div class="pad" style="display:grid;gap:16px;max-width:900px"><p style="margin:0;color:var(--muted)">Cada lead novo vai para a próxima pessoa <b>online</b> da fila, em ordem. Quem está ocupado, ausente ou offline é pulado. Cliente que volta continua com a mesma pessoa.</p>'+
+   '<div class="card" style="overflow-x:auto"><table><thead><tr><th>Posição</th><th>Pessoa</th><th>Status</th><th>Leads abertos</th><th>Login</th></tr></thead><tbody>'+
+   q.map(a=>{const[n,c]=STATUS[a.status||'offline'];return'<tr><td class="mono">#'+a.queue_position+'</td><td><b>'+esc(a.name)+'</b></td><td><span class="chip"><span class="dot" style="background:'+c+'"></span>'+n+'</span>'+(a.status_at?' <small style="color:var(--faint)">desde '+fDT(a.status_at)+'</small>':'')+'</td><td class="mono">'+S.leads.filter(l=>l.owner_id===a.id&&!CLOSED.includes(l.stage)).length+'</td><td>'+(a.user_id?'Ativo':'<span class="chip warn">Sem login</span>')+'</td></tr>'}).join('')+
+   '</tbody></table></div><p style="margin:0;color:var(--muted);font-size:12.5px">Administradores: '+S.agents.filter(a=>a.role==='admin').map(a=>esc(a.name)).join(', ')+'. Eles veem todos os leads e não entram na fila.</p></div>';
+}
+function modal(){
+  const m=S.modal;
+  if(m.type==='lost')return'<div class="scrim"><div class="modal"><h2>Motivo da perda</h2><select class="inp" id="lostr"><option>Preço acima do orçamento</option><option>Ticket baixo</option><option>Data indisponível</option><option>Fechou com outro espaço</option><option>Desistiu do evento</option><option>Parou de responder</option><option>Dados incorretos</option><option>Outro</option></select><input class="inp" id="lostt" placeholder="Detalhe (opcional)"><div class="row" style="justify-content:flex-end"><button class="btn" data-act="mclose">Cancelar</button><button class="btn pri" data-act="lostok">Marcar como perdido</button></div></div></div>';
+  if(m.type==='won')return'<div class="scrim"><div class="modal"><h2>Venda realizada</h2><div class="field"><label for="wonv">Valor contratado (R$)</label><input class="inp" id="wonv" type="number" min="0"></div><div class="row" style="justify-content:flex-end"><button class="btn" data-act="mclose">Cancelar</button><button class="btn pri" data-act="wonok">Confirmar venda</button></div></div></div>';
+  return'';
+}
+
+/* ---------- actions ---------- */
+async function moveStage(id,stage,note,value){
+  const l=S.leads.find(x=>x.id===id);if(!l||l.stage===stage)return;
+  if(stage==='perdido'&&note==null){S.modal={type:'lost',id};render();return}
+  if(stage==='ganho'&&value==null){S.modal={type:'won',id};render();return}
+  const {error}=await sb.rpc('crm_move_stage',{p_lead:id,p_stage:stage,p_note:note||null,p_value:value??null});
+  if(error)toast(error.message,true);else{toast('Movido para '+ST[stage].name);if(S.sel===id)openLead(id)}
+}
+document.addEventListener('submit',async e=>{
+  if(e.target.id!=='loginform')return;e.preventDefault();
+  const {error}=await sb.auth.signInWithPassword({email:$('#email').value.trim(),password:$('#pass').value});
+  if(error){S.err='E-mail ou senha incorretos.';render()}
+});
+document.addEventListener('click',async e=>{
+  const el=e.target.closest('[data-act]');if(!el)return;const a=el.dataset.act,v=el.dataset.v,id=el.dataset.id;
+  if(a==='open'&&e.target.closest('select'))return;
+  const L=()=>S.leads.find(x=>x.id===S.sel);
+  if(a==='nav'){S.view=v;render()}
+  else if(a==='open')openLead(id);
+  else if(a==='back'){S.sel=null;render()}
+  else if(a==='filter'){S.filter=v;render()}
+  else if(a==='mode'){S.mode=v;render()}
+  else if(a==='togglecrm'){S.showCrm=!S.showCrm;render()}
+  else if(a==='logout'){await sb.auth.signOut()}
+  else if(a==='notif'){try{await Notification.requestPermission();toast('Notificações configuradas.')}catch(x){toast('Este navegador não permite notificações.',true)}}
+  else if(a==='status'){const {error}=await sb.rpc('crm_set_status',{p_status:v});if(error)toast(error.message,true);else{S.me.status=v;render()}}
+  else if(a==='prio'){const l=L();const {error}=await sb.from('crm_leads').update({priority:!l.priority}).eq('id',l.id);if(error)toast(error.message,true)}
+  else if(a==='send'){
+    const l=L();const text=S.draft.trim();if(!l||!text||S.sending)return;
+    if(S.mode==='note'){const {error}=await sb.rpc('crm_add_note',{p_lead:l.id,p_body:text});if(error)return toast(error.message,true);S.draft='';render();return}
+    S.sending=true;render();
+    const {data,error}=await sb.functions.invoke('crm-send',{body:{lead_id:l.id,text}});
+    S.sending=false;
+    if(error||data?.error){let msg=data?.error;try{msg=msg||(await error.context.json()).error}catch(x){}toast(msg||'Não foi possível enviar.',true)}else S.draft='';
+    render();
+  }
+  else if(a==='template'){
+    const l=L();S.sending=true;render();
+    const first=(l.name||'').split(' ')[0]||'tudo bem';
+    const {data,error}=await sb.functions.invoke('crm-send',{body:{lead_id:l.id,template:'boas_vindas_lead',lang:'pt_BR',params:[first]}});
+    S.sending=false;
+    if(error||data?.error){let msg=data?.error;try{msg=msg||(await error.context.json()).error}catch(x){}toast(msg||'Não foi possível enviar.',true)}else toast('Modelo enviado.');
+    render();
+  }
+  else if(a==='transfer'){const to=$('#trto').value;const {error}=await sb.rpc('crm_transfer',{p_lead:S.sel,p_to:to,p_reason:'manual'});if(error)toast(error.message,true);else{toast('Transferido para '+agentName(to)+'.');openLead(S.sel)}}
+  else if(a==='mclose'){S.modal=null;render()}
+  else if(a==='lostok'){let r=$('#lostr').value;const d=$('#lostt').value.trim();if(d)r+=' · '+d;const id2=S.modal.id;S.modal=null;await moveStage(id2,'perdido',r)}
+  else if(a==='wonok'){const val=Number($('#wonv').value)||0;const id2=S.modal.id;S.modal=null;await moveStage(id2,'ganho',null,val)}
+});
+document.addEventListener('input',e=>{const k=e.target.dataset.input;if(k==='q'){S.q=e.target.value;schedule()}else if(k==='draft')S.draft=e.target.value});
+document.addEventListener('change',async e=>{
+  const el=e.target;
+  if(el.dataset.field){const l=S.leads.find(x=>x.id===S.sel);let v=el.value;if(el.type==='number')v=v===''?null:Number(v);if(v==='')v=null;
+    const {error}=await sb.from('crm_leads').update({[el.dataset.field]:v}).eq('id',l.id);if(error)toast(error.message,true);return}
+  const k=el.dataset.change;
+  if(k==='stage'){await moveStage(S.sel,el.value);render()}
+  else if(k==='owner'){S.owner=el.value;render()}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)&&e.target.id==='composer'){document.querySelector('[data-act="send"]')?.click()}if(e.key==='Escape'&&S.modal){S.modal=null;render()}});
+document.addEventListener('dragstart',e=>{const c=e.target.closest&&e.target.closest('.kc');if(c){S.drag=c.dataset.lead;try{e.dataTransfer.setData('text/plain',S.drag)}catch(x){}}});
+document.addEventListener('dragover',e=>{const c=e.target.closest&&e.target.closest('.col');if(c&&S.drag){e.preventDefault();document.querySelectorAll('.col.over').forEach(x=>x!==c&&x.classList.remove('over'));c.classList.add('over')}});
+document.addEventListener('drop',async e=>{const c=e.target.closest&&e.target.closest('.col');if(!c||!S.drag)return;e.preventDefault();const id=S.drag;S.drag=null;c.classList.remove('over');await moveStage(id,c.dataset.stage);render()});
+setInterval(schedule,60000);
+
+/* ---------- boot ---------- */
+async function start(session){
+  S.session=session;S.err='';
+  if(session){await loadAll();if(S.me)subscribe()}
+  S.loading=false;render();
+}
+sb.auth.onAuthStateChange((ev,session)=>{if(ev==='SIGNED_IN'||ev==='SIGNED_OUT'||ev==='INITIAL_SESSION'){if((S.session&&S.session.user.id)!==(session&&session.user.id)||ev==='INITIAL_SESSION')start(session)}});
+})();
+</script>
+</body>
+</html>
