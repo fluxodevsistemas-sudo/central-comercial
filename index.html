@@ -474,7 +474,7 @@ const SUPABASE_URL='https://nxdyfalatzyteuapdpei.supabase.co';
 const SUPABASE_KEY='sb_publishable_l9ZbAf74UtwCXjMSPO7H5w_qvV_SvBH';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
 
-const STAGES=[['primeiro','Primeiro atendimento','#3C6E9E'],['qualificacao','Qualificação','#5B7FB8'],['frio','Lead frio','#8D9792'],['quente','Lead quente','#E07A1F'],['negociacao','Em negociação','#B7791F'],['followup','Follow-up','#6B5BB8'],['ganho','Ganho','#1F8A5B'],['perdido','Perdido','#C0432F']];
+const STAGES=[['primeiro','Primeiro atendimento','#3C6E9E'],['qualificacao','Qualificação','#5B7FB8'],['frio','Lead frio','#8D9792'],['quente','Lead quente','#E07A1F'],['call','Call','#0E8C9C'],['negociacao','Em negociação','#B7791F'],['followup','Follow-up','#6B5BB8'],['ganho','Ganho','#1F8A5B'],['perdido','Perdido','#C0432F']];
 const ST=Object.fromEntries(STAGES.map(s=>[s[0],{name:s[1],c:s[2]}]));
 const STATUS={online:['Online','#2FB37A'],ocupado:['Ocupado','#E0A84A'],ausente:['Ausente','#7FA3CF'],offline:['Offline','#77817C']};
 const CLOSED=['ganho','perdido'];
@@ -903,7 +903,7 @@ function lumiView(){
 }
 function autoCard(on){
   const ai=S.ai||{},auto=ai.auto_stage!==false;
-  const crit=[['primeiro','O cliente ainda não respondeu, ou só mandou um oi.'],['qualificacao','Já conversa, mas faltam 2 ou mais dados: tipo de evento, data, convidados, orçamento, unidade.'],['quente','Tem data e convidados definidos e pede valores, disponibilidade, visita ou degustação.'],['negociacao','A proposta já foi enviada e o cliente discute preço, parcelas, desconto ou contrato.'],['followup','Havia avanço e parou: 48 h sem resposta após o consultor, ou o cliente pediu para retornar depois.'],['frio','Respostas evasivas, "só pesquisando", data muito distante, orçamento incompatível ou sem resposta após 2 tentativas.'],['perdido','Recusa explícita: fechou com outro espaço, desistiu ou pediu para não ser contatado.'],['ganho','Contratação confirmada. A Lumi só sugere: quem marca a venda é o consultor, com o valor.']];
+  const crit=[['primeiro','O cliente ainda não respondeu, ou só mandou um oi.'],['qualificacao','Já conversa, mas faltam 2 ou mais dados: tipo de evento, data, convidados, orçamento, unidade.'],['quente','Tem data e convidados definidos e pede valores, disponibilidade, visita ou degustação.'],['call','Ligação ou videochamada combinada com o cliente (dia e horário) ou que acabou de acontecer, ainda sem proposta.'],['negociacao','A proposta já foi enviada e o cliente discute preço, parcelas, desconto ou contrato.'],['followup','Havia avanço e parou: 48 h sem resposta após o consultor, ou o cliente pediu para retornar depois.'],['frio','Respostas evasivas, "só pesquisando", data muito distante, orçamento incompatível ou sem resposta após 2 tentativas.'],['perdido','Recusa explícita: fechou com outro espaço, desistiu ou pediu para não ser contatado.'],['ganho','Contratação confirmada. A Lumi só sugere: quem marca a venda é o consultor, com o valor.']];
   const moved=S.act.filter(a=>a.kind==='move'&&Date.now()-t(a.created_at)<24*H).length;
   return'<section class="card autoc"><div class="ch">'+ico('kanban')+'<b>Organização automática do funil</b><span class="cr">'+moved+' movimentações nas últimas 24 h</span>'+
    (isAdmin()?'<button class="sw'+(auto?' on':'')+'" data-act="autostage" role="switch" aria-checked="'+auto+'" title="Ligar ou desligar"><i></i></button>':'<span class="chip '+(auto?'accent':'')+'">'+(auto?'Ligada':'Desligada')+'</span>')+'</div>'+
