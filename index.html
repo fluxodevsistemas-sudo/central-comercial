@@ -42,7 +42,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 [hidden]{display:none!important}
 svg.i{width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 svg.i.sm{width:14px;height:14px}
-#app{height:100%}
+#app{position:fixed;inset:0;overflow:hidden}
+*{scrollbar-width:none;-ms-overflow-style:none}
+*::-webkit-scrollbar{width:0;height:0;display:none}
 .app{display:grid;grid-template-columns:236px minmax(0,1fr);grid-template-rows:minmax(0,1fr);height:100vh;height:100dvh;overflow:hidden}
 
 /* ---------- navigation ---------- */
@@ -76,30 +78,34 @@ svg.i.sm{width:14px;height:14px}
 /* ---------- brain ---------- */
 .brain{position:relative;display:inline-grid;place-items:center;flex:none}
 .brain svg{width:100%;height:100%;overflow:visible}
-.brain .rays{transform-origin:32px 28px;animation:spin 26s linear infinite}
-.brain .ray{animation:rayp 2.6s ease-in-out infinite;transform-box:view-box;transform-origin:32px 28px}
-.brain .ray.r2{animation-duration:3.4s}
-.brain .halo{transform-origin:32px 28px;animation:halo 2.8s ease-in-out infinite}
-.brain .lobe{animation:breathe 2.8s ease-in-out infinite;transform-origin:32px 28px}
-.brain .orbit{transform-origin:32px 28px;animation:spin 7s linear infinite}
+.brain .rays{transform-origin:62px 44px;animation:spin 30s linear infinite;opacity:.8}
+.brain .ray{animation:rayp 3s ease-in-out infinite;transform-box:view-box;transform-origin:62px 44px}
+.brain .halo{transform-origin:62px 44px;animation:halo 3s ease-in-out infinite}
+.brain .lobe{animation:breathe 3s ease-in-out infinite;transform-origin:62px 50px}
+.brain .bolt{opacity:0;animation:zap 3s linear infinite}
+.brain .bolt .bc{stroke:#FFFDF0;stroke-width:1.1;stroke-dasharray:100;animation:inherit;animation-name:draw}
+.brain .bolt .bg{stroke:#FFC531;stroke-width:3.2;stroke-dasharray:100;animation:inherit;animation-name:draw}
+.brain .bglow .bolt .bg{stroke:#FFB800;stroke-width:6}
 .brain .net line{animation:netp 3s ease-in-out infinite}
 .brain .net line:nth-child(3n){animation-delay:1s}.brain .net line:nth-child(3n+1){animation-delay:2s}
 .brain .pl{stroke-dasharray:4 36;stroke-dashoffset:40;animation:fire 2s linear infinite}
 .brain .nd{transform-box:fill-box;transform-origin:center;animation:node 2.4s ease-in-out infinite}
 .brain .spark{animation:twinkle 2.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
 .brain .spark:nth-of-type(2){animation-delay:.7s}.brain .spark:nth-of-type(3){animation-delay:1.4s}
-.brain.idle{filter:saturate(.3) brightness(.85)}
+.brain.idle{filter:saturate(.25) brightness(.85)}
 .brain.idle *{animation-play-state:paused!important}
-.brain.idle .rays,.brain.idle .pulses{opacity:.25}
-@keyframes halo{0%,100%{opacity:.6;transform:scale(.9)}50%{opacity:1;transform:scale(1.08)}}
+.brain.idle .rays,.brain.idle .bolts,.brain.idle .pulses{display:none}
+@keyframes halo{0%,100%{opacity:.55;transform:scale(.9)}50%{opacity:1;transform:scale(1.07)}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
-@keyframes rayp{0%,100%{opacity:.35;transform:scale(.82)}50%{opacity:1;transform:scale(1.06)}}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
+@keyframes rayp{0%,100%{opacity:.3;transform:scale(.85)}50%{opacity:1;transform:scale(1.05)}}
+@keyframes zap{0%,100%{opacity:0}3%{opacity:1}6%{opacity:.25}9%{opacity:1}16%{opacity:.9}24%{opacity:0}}
+@keyframes draw{0%{stroke-dashoffset:100}8%,100%{stroke-dashoffset:0}}
 @keyframes fire{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}
-@keyframes node{0%,100%{opacity:.55;transform:scale(.8)}45%{opacity:1;transform:scale(1.45)}}
-@keyframes netp{0%,100%{opacity:.35}50%{opacity:.9}}
+@keyframes node{0%,100%{opacity:.55;transform:scale(.8)}45%{opacity:1;transform:scale(1.5)}}
+@keyframes netp{0%,100%{opacity:.3}50%{opacity:.85}}
 @keyframes twinkle{0%,100%{opacity:0;transform:scale(.4)}50%{opacity:1;transform:scale(1)}}
-@media (prefers-reduced-motion:reduce){.brain *{animation:none!important}.live{animation:none}}
+@media (prefers-reduced-motion:reduce){.brain *{animation:none!important}.brain .bolt{opacity:.8}.live{animation:none}}
 
 /* ---------- main ---------- */
 .main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
@@ -225,7 +231,7 @@ textarea.inp{resize:vertical}
 .kc .tip{font-size:12px;color:var(--ink-2);background:var(--gold-soft);border-radius:8px;padding:6px 8px;display:flex;gap:6px}
 .kc .tip svg{color:var(--gold-deep);margin-top:1px}
 /* ---------- lumi page ---------- */
-.lumi{padding:22px 24px 32px;display:grid;gap:18px;max-width:1280px}
+.lumi{padding:24px 28px 36px;display:grid;gap:18px;max-width:1480px;margin:0 auto;width:100%}
 .hero{position:relative;isolation:isolate;border-radius:22px;padding:22px 30px 22px 18px;display:grid;grid-template-columns:auto 1fr auto;gap:22px;align-items:center;color:#F4F1E6;
   background:radial-gradient(70% 120% at 0% 0%,rgba(242,185,43,.35),transparent 60%),radial-gradient(60% 90% at 100% 100%,rgba(28,138,93,.35),transparent 60%),linear-gradient(135deg,#16201C,#0D1311);box-shadow:var(--shadow-lg);overflow:hidden}
 .hero::before,.hero::after{content:"";position:absolute;z-index:-1;border-radius:50%;filter:blur(40px);opacity:.55;animation:aurora 14s ease-in-out infinite alternate}
@@ -242,12 +248,15 @@ textarea.inp{resize:vertical}
 .kpi small{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;display:flex;gap:6px;align-items:center}
 .kpi b{font-size:26px;font-family:var(--mono);font-weight:500;letter-spacing:-.02em}
 .kpi span{font-size:12px;color:var(--muted)}
-.grid2{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}
-.ch{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}.ch b{font-size:14px}.ch span{margin-left:auto;font-size:12px;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:18px;align-items:stretch}
+.grid2>.card{display:flex;flex-direction:column;height:540px;overflow:hidden}
+.grid2 .plist,.grid2 .feed{flex:1;min-height:0;overflow-y:auto;-webkit-mask-image:linear-gradient(to bottom,#000 0,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(to bottom,#000 0,#000 calc(100% - 36px),transparent);padding-bottom:24px}
+.ch{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);flex:none;min-height:56px}.ch b{font-size:14px}.ch>.cr{margin-left:auto;font-size:12px;color:var(--muted);display:inline-flex;gap:6px;align-items:center}
+.prio-item:last-child{border-bottom:0}.fi:last-child{border-bottom:0}
 .prio-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);align-items:center;cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;width:100%;text-align:left}
 .prio-item:hover{background:var(--surface-2)}
 .prio-item p{margin:2px 0 0;font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.feed{max-height:520px;overflow:auto}
+.feed{}
 .fi{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line);font-size:12.5px;animation:fadein .4s ease}
 .fi .ic{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:var(--gold-soft);color:var(--gold-deep)}
 .fi.alert .ic{background:var(--crit-soft);color:var(--crit)}
@@ -270,7 +279,7 @@ tr:last-child td{border-bottom:0}
 .dscrim{display:none}
 /* ---------- responsivo ---------- */
 @media (max-width:1440px){.inbox{grid-template-columns:310px minmax(0,1fr) 340px}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
-@media (max-width:1320px){.kpis{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}.grid2{grid-template-columns:1fr}}
+@media (max-width:1320px){.kpis{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}.grid2{grid-template-columns:1fr}.grid2>.card{height:auto;max-height:520px}}
 /* tablet paisagem e notebooks pequenos: menu vira trilho de ícones, ficha vira gaveta */
 @media (max-width:1240px){
   .app{grid-template-columns:76px minmax(0,1fr)}
@@ -376,35 +385,50 @@ const IC={
 };
 const ico=(n,cls)=>'<svg class="i'+(cls?' '+cls:'')+'" viewBox="0 0 24 24" aria-hidden="true">'+IC[n]+'</svg>';
 let BRN=0;
-const BR_NODES=[[17,19],[25,12],[22,28],[13,31],[24,39],[33,22],[33,35],[41,12],[47,21],[42,29],[51,32],[40,40],[29,46],[36,47]];
-const BR_EDGES=[[0,1],[0,2],[1,5],[2,3],[2,5],[3,4],[4,6],[2,6],[5,7],[5,9],[7,8],[8,9],[9,10],[9,6],[10,11],[6,11],[4,12],[11,13],[12,13],[6,12]];
+const BR_CER='M22 58C14 52 12 40 18 31C22 20 34 12 47 11C55 6 68 6 77 11C88 11 98 18 102 28C109 33 111 44 106 52C106 61 99 67 90 67C86 72 78 74 71 71C64 76 54 76 48 71C40 74 30 70 27 64C24 63 22 61 22 58Z';
+const BR_CBL='M76 69C84 68 93 71 96 77C98 84 91 89 83 88C76 88 71 83 71 77C71 73 73 70 76 69Z';
+const BR_STEM='M64 71C66 79 65 87 61 96L69 97C73 89 75 80 75 71Z';
+const BR_SUL=['M62 10c-3 7 2 12-2 19s1 12-4 19','M33 57c8-4 16-3 24-7s11-1 16-4','M25 38c5 2 9-1 13 2s7 1 9 5','M29 25c4 3 9 1 12 5s3 6 7 6','M45 17c2 4 7 4 8 9s-2 8 1 12','M75 14c-1 5 3 8 1 13s3 8 0 12','M87 19c-3 4 0 9-3 13s1 8-2 11','M98 31c-5 1-6 6-11 7','M101 45c-5-1-8 3-13 2s-8 3-12 1','M47 64c4-3 9-2 12-5','M70 58c4 1 7-2 11 0s6 4 10 2','M19 47c4-1 7 2 11 0','M36 46c3-3 7-2 9-5','M53 31c3 2 6 1 8 4','M91 54c-3-2-7-1-9-4','M38 18c1 3 4 5 4 8'];
+const BR_FOL=['M75 75c6-1 13 0 19 2','M73 80c6 0 12 1 20 3','M76 85c5 0 9 1 13 1'];
+const BR_NODES=[[24,40],[34,26],[47,18],[62,14],[78,17],[92,26],[100,40],[94,55],[80,62],[64,64],[48,62],[33,56],[45,40],[60,34],[76,36],[86,46],[62,50],[38,44]];
+const BR_EDGES=[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,0],[1,12],[12,13],[13,3],[13,14],[14,4],[14,15],[15,6],[15,7],[16,13],[16,9],[16,14],[12,17],[17,11],[17,0],[16,10],[12,16],[14,8]];
 function brain(size,idle){
-  const u='b'+(++BRN),cx=32,cy=28,small=size<34,rays=small?8:14;
-  let r='';for(let k=0;k<rays;k++){const ang=k*2*Math.PI/rays,len=(k%2?40:48)*(small?.85:1),w0=small?1.4:1.1,w1=small?3.4:4.2;
-    const ca=Math.cos(ang),sa=Math.sin(ang),px=-sa,py=ca;const f=v=>v.toFixed(2);
-    r+='<path class="ray'+(k%2?' r2':'')+'" style="animation-delay:'+(k*.18).toFixed(2)+'s" d="M'+f(cx+px*w0)+' '+f(cy+py*w0)+'L'+f(cx+ca*len+px*w1)+' '+f(cy+sa*len+py*w1)+'L'+f(cx+ca*len-px*w1)+' '+f(cy+sa*len-py*w1)+'L'+f(cx-px*w0)+' '+f(cy-py*w0)+'Z"/>'}
-  const edges=BR_EDGES.map(([i,j],k)=>{const A=BR_NODES[i],B=BR_NODES[j];return'<line x1="'+A[0]+'" y1="'+A[1]+'" x2="'+B[0]+'" y2="'+B[1]+'"/>'}).join('');
-  const pulses=small?'':BR_EDGES.map(([i,j],k)=>{const A=BR_NODES[k%2?j:i],B=BR_NODES[k%2?i:j];return'<line class="pl" pathLength="40" style="animation-delay:'+((k*.37)%3).toFixed(2)+'s;animation-duration:'+(1.6+(k%5)*.35).toFixed(2)+'s" x1="'+A[0]+'" y1="'+A[1]+'" x2="'+B[0]+'" y2="'+B[1]+'"/>'}).join('');
-  const nodes=BR_NODES.map(([x,y],k)=>'<circle class="nd" style="animation-delay:'+((k*.29)%2.4).toFixed(2)+'s" cx="'+x+'" cy="'+y+'" r="'+(small?1.9:1.55)+'"/>').join('');
-  const lobe='M31 9.5c-2.8-3.2-9.3-3.4-11.6.9-5.3-.6-9 3.5-8 8.4-4.3 1.9-5.6 7.6-2 10.9-2.4 3.9-.6 9.3 4.4 10.4.6 5.1 6.6 7.8 11 5 1.8 2.3 4.4 2.7 6.2 1.3V9.5zM33 9.5c2.8-3.2 9.3-3.4 11.6.9 5.3-.6 9 3.5 8 8.4 4.3 1.9 5.6 7.6 2 10.9 2.4 3.9.6 9.3-4.4 10.4-.6 5.1-6.6 7.8-11 5-1.8 2.3-4.4 2.7-6.2 1.3V9.5z';
+  const u='b'+(++BRN),small=size<44,cx=62,cy=44;
+  let seed=7;const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
+  const bolts=(small?[205,250,290,330,10]:[195,222,248,272,296,320,345,12,160]).map((deg,k)=>{
+    const t=deg*Math.PI/180;let x=cx+Math.cos(t)*44,y=cy+Math.sin(t)*30;let d='M'+x.toFixed(1)+' '+y.toFixed(1),br='';
+    const L=(small?22:30)+rnd()*8,n=5;for(let i=1;i<=n;i++){const st=L/n,j=(rnd()-.5)*0.9;x+=Math.cos(t+j)*st;y+=Math.sin(t+j)*st;d+='L'+x.toFixed(1)+' '+y.toFixed(1);
+      if(i===2&&!small){let bx=x,by=y,bt=t+(rnd()>.5?.7:-.7);br='M'+bx.toFixed(1)+' '+by.toFixed(1);for(let q=0;q<3;q++){bx+=Math.cos(bt+(rnd()-.5)*.8)*4.5;by+=Math.sin(bt+(rnd()-.5)*.8)*4.5;br+='L'+bx.toFixed(1)+' '+by.toFixed(1)}}}
+    const st='animation-delay:'+(k*.47).toFixed(2)+'s;animation-duration:'+(2.6+(k%4)*.55).toFixed(2)+'s';
+    return'<g class="bolt" style="'+st+'"><path class="bg" pathLength="100" d="'+d+'"/>'+(br?'<path class="bg" pathLength="100" d="'+br+'"/>':'')+'<path class="bc" pathLength="100" d="'+d+'"/>'+(br?'<path class="bc" pathLength="100" d="'+br+'"/>':'')+'</g>'}).join('');
+  let beams='';for(let k=0;k<12;k++){const ang=k*Math.PI/6,len=k%2?56:66,w1=5,ca=Math.cos(ang),sa=Math.sin(ang),px=-sa,py=ca,f=v=>v.toFixed(1);
+    beams+='<path class="ray" style="animation-delay:'+(k*.2).toFixed(1)+'s" d="M'+f(cx+px)+' '+f(cy+py)+'L'+f(cx+ca*len+px*w1)+' '+f(cy+sa*len+py*w1)+'L'+f(cx+ca*len-px*w1)+' '+f(cy+sa*len-py*w1)+'L'+f(cx-px)+' '+f(cy-py)+'Z"/>'}
+  const edges=BR_EDGES.map(([i,j])=>{const A=BR_NODES[i],B=BR_NODES[j];return'<line x1="'+A[0]+'" y1="'+A[1]+'" x2="'+B[0]+'" y2="'+B[1]+'"/>'}).join('');
+  const pulses=small?'':BR_EDGES.map(([i,j],k)=>{const A=BR_NODES[k%2?j:i],B=BR_NODES[k%2?i:j];return'<line class="pl" pathLength="40" style="animation-delay:'+((k*.41)%3.2).toFixed(2)+'s;animation-duration:'+(1.5+(k%5)*.4).toFixed(2)+'s" x1="'+A[0]+'" y1="'+A[1]+'" x2="'+B[0]+'" y2="'+B[1]+'"/>'}).join('');
+  const nodes=BR_NODES.map(([x,y],k)=>'<circle class="nd" style="animation-delay:'+((k*.31)%2.6).toFixed(2)+'s" cx="'+x+'" cy="'+y+'" r="'+(small?2.4:1.8)+'"/>').join('');
+  const sul=BR_SUL.map(d=>'<path d="'+d+'"/>').join(''),fol=BR_FOL.map(d=>'<path d="'+d+'"/>').join('');
   return'<span class="brain'+(idle?' idle':'')+(small?' small':'')+'" style="width:'+size+'px;height:'+size+'px" aria-hidden="true">'+
-  '<svg viewBox="-18 -22 100 100"><defs>'+
-  '<radialGradient id="'+u+'r" gradientUnits="userSpaceOnUse" cx="32" cy="28" r="50"><stop offset=".25" stop-color="#FFE27A" stop-opacity=".95"/><stop offset=".6" stop-color="#FFC531" stop-opacity=".35"/><stop offset="1" stop-color="#FFB800" stop-opacity="0"/></radialGradient>'+
-  '<radialGradient id="'+u+'h" gradientUnits="userSpaceOnUse" cx="32" cy="28" r="40"><stop offset="0" stop-color="#FFD84A" stop-opacity=".75"/><stop offset=".55" stop-color="#FFC22E" stop-opacity=".22"/><stop offset="1" stop-color="#FFB000" stop-opacity="0"/></radialGradient>'+
-  '<linearGradient id="'+u+'g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF1A8"/><stop offset=".45" stop-color="#FFCB3D"/><stop offset="1" stop-color="#EE920B"/></linearGradient>'+
-  '<radialGradient id="'+u+'s" cx=".35" cy=".28" r=".55"><stop offset="0" stop-color="#fff" stop-opacity=".8"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>'+
-  '<filter id="'+u+'f" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'+
-  '<clipPath id="'+u+'c"><path d="'+lobe+'"/></clipPath></defs>'+
-  '<circle class="halo" cx="32" cy="28" r="40" fill="url(#'+u+'h)"/>'+
-  '<g class="rays" fill="url(#'+u+'r)">'+r+'</g>'+
-  (small?'':'<g class="orbit"><circle cx="32" cy="-14" r="1.3" fill="#FFE27A"/><circle cx="72" cy="28" r="1" fill="#FFF1A8"/><circle cx="-6" cy="40" r="1.1" fill="#FFD84A"/></g>')+
-  '<g class="lobe"><path fill="url(#'+u+'g)" stroke="#C98306" stroke-width="1.2" d="'+lobe+'"/>'+
-  '<g fill="none" stroke="#C98306" stroke-width="1.15" stroke-linecap="round" opacity=".55"><path d="M19.4 10.4c1.6 1.2 2.3 3 2 5M11.4 18.8c2.2-.3 4.3.6 5.4 2.4M9.4 29.7c2.4.8 4.9.3 6.3-1.4M13.8 40.1c.9-2.2 2.9-3.5 5.2-3.5M24.8 45.1c-.4-2.4.6-4.6 2.6-5.6"/><path d="M44.6 10.4c-1.6 1.2-2.3 3-2 5M52.6 18.8c-2.2-.3-4.3.6-5.4 2.4M54.6 29.7c-2.4.8-4.9.3-6.3-1.4M50.2 40.1c-.9-2.2-2.9-3.5-5.2-3.5M39.2 45.1c.4-2.4-.6-4.6-2.6-5.6"/></g>'+
-  '<g clip-path="url(#'+u+'c)"><g class="net" stroke="#FFFBE6" stroke-width=".7" stroke-linecap="round" opacity=".75">'+edges+'</g>'+
-  '<g class="pulses" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" filter="url(#'+u+'f)">'+pulses+'</g>'+
+  '<svg viewBox="-12 -30 148 148"><defs>'+
+  '<radialGradient id="'+u+'r" gradientUnits="userSpaceOnUse" cx="'+cx+'" cy="'+cy+'" r="66"><stop offset=".3" stop-color="#FFE27A" stop-opacity=".55"/><stop offset=".7" stop-color="#FFC531" stop-opacity=".12"/><stop offset="1" stop-color="#FFB800" stop-opacity="0"/></radialGradient>'+
+  '<radialGradient id="'+u+'h" gradientUnits="userSpaceOnUse" cx="'+cx+'" cy="'+cy+'" r="64"><stop offset="0" stop-color="#FFD84A" stop-opacity=".7"/><stop offset=".5" stop-color="#FFBE2E" stop-opacity=".2"/><stop offset="1" stop-color="#FFB000" stop-opacity="0"/></radialGradient>'+
+  '<radialGradient id="'+u+'g" gradientUnits="userSpaceOnUse" cx="44" cy="22" r="84"><stop offset="0" stop-color="#FFF6C4"/><stop offset=".35" stop-color="#FFD54F"/><stop offset=".75" stop-color="#F2A11A"/><stop offset="1" stop-color="#B86A06"/></radialGradient>'+
+  '<linearGradient id="'+u+'k" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E9A21D"/><stop offset="1" stop-color="#9C5806"/></linearGradient>'+
+  '<filter id="'+u+'f" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'+
+  '<filter id="'+u+'z" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter>'+
+  '<clipPath id="'+u+'c"><path d="'+BR_CER+'"/></clipPath></defs>'+
+  '<circle class="halo" cx="'+cx+'" cy="'+cy+'" r="64" fill="url(#'+u+'h)"/>'+
+  '<g class="rays" fill="url(#'+u+'r)">'+beams+'</g>'+
+  '<g class="bolts" stroke-linecap="round" stroke-linejoin="round" fill="none"><g filter="url(#'+u+'z)" class="bglow">'+bolts.replace(/<path class="bc"[^>]*\/>/g,'')+'</g>'+bolts+'</g>'+
+  '<g class="lobe">'+
+  '<path d="'+BR_STEM+'" fill="url(#'+u+'k)" stroke="#8A4D05" stroke-width=".8"/>'+
+  '<path d="'+BR_CBL+'" fill="url(#'+u+'k)" stroke="#8A4D05" stroke-width=".9"/><g fill="none" stroke="#7A4304" stroke-width=".9" stroke-linecap="round" opacity=".7">'+fol+'</g>'+
+  '<path d="'+BR_CER+'" fill="url(#'+u+'g)" stroke="#A9640A" stroke-width="1.1"/>'+
+  '<g clip-path="url(#'+u+'c)"><g fill="none" stroke-linecap="round"><g stroke="#FFF3C2" stroke-width="1.6" opacity=".55" transform="translate(.7 .9)">'+sul+'</g><g stroke="#B86E08" stroke-width="1.35" opacity=".85">'+sul+'</g></g>'+
+  '<g class="net" stroke="#FFFBE6" stroke-width=".55" stroke-linecap="round" opacity=".55">'+edges+'</g>'+
+  '<g class="pulses" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round" filter="url(#'+u+'f)">'+pulses+'</g>'+
   '<g class="nodes" fill="#FFFDF2" filter="url(#'+u+'f)">'+nodes+'</g></g>'+
-  '<path fill="url(#'+u+'s)" d="M14 14c4-5 12-5 15-2-4 0-9 2-11 6-2 3-5 2-4-4z"/></g>'+
-  '<path class="spark" fill="#FFE27A" d="M60 2l1.2 3.4 3.4 1.2-3.4 1.2L60 11.2l-1.2-3.4-3.4-1.2 3.4-1.2z"/><path class="spark" fill="#FFF1A8" d="M2 50l.9 2.5 2.5.9-2.5.9L2 56.8l-.9-2.5-2.5-.9 2.5-.9z"/><path class="spark" fill="#FFD84A" d="M63 50l.8 2.1 2.1.8-2.1.8-.8 2.1-.8-2.1-2.1-.8 2.1-.8z"/>'+
+  '<path d="M26 34C30 22 42 15 54 14" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2.4" stroke-linecap="round"/></g>'+
+  '<path class="spark" fill="#FFE27A" d="M118 -6l1.6 4.4 4.4 1.6-4.4 1.6-1.6 4.4-1.6-4.4-4.4-1.6 4.4-1.6z"/><path class="spark" fill="#FFF1A8" d="M2 84l1.2 3.3 3.3 1.2-3.3 1.2L2 93l-1.2-3.3-3.3-1.2 3.3-1.2z"/><path class="spark" fill="#FFD84A" d="M120 86l1 2.8 2.8 1-2.8 1-1 2.8-1-2.8-2.8-1 2.8-1z"/>'+
   '</svg></span>';
 }
 const $=s=>document.querySelector(s);
@@ -613,15 +637,15 @@ function lumiView(){
   const ownerIds=new Set(L.map(l=>l.owner_id));
   const visActs=S.act.filter(a=>!a.lead_id||isAdmin()||ownerIds.has(a.owner_id)).slice(0,40);
   const k=(icon,lab,val,sub)=>'<div class="card kpi"><small>'+ico(icon,'sm')+lab+'</small><b>'+val+'</b><span>'+sub+'</span></div>';
-  return'<div class="lumi"><div class="hero">'+brain(168,!on)+'<div><h2>Lumi <span class="chip gold" style="font-size:11px">'+(on?'<span class="live"></span>Ativa 24 h':'Aguardando ativação')+'</span></h2>'+
+  return'<div class="lumi"><div class="hero">'+brain(196,!on)+'<div><h2>Lumi <span class="chip gold" style="font-size:11px">'+(on?'<span class="live"></span>Ativa 24 h':'Aguardando ativação')+'</span></h2>'+
    '<p>Eu leio as conversas de todos os consultores, identifico a intenção de cada cliente, aponto riscos de perda e escrevo sugestões de resposta prontas. Nada é enviado sem o consultor aprovar, e eu nunca invento preço, data ou desconto.</p>'+
    '<div class="hs"><span>'+ico('clock','sm')+'Última varredura: '+(ai.last_scan_at?rel(ai.last_scan_at):'ainda não rodou')+'</span><span>'+ico('spark','sm')+(ai.total_today||0)+' análises hoje</span><span>'+ico('target','sm')+'Modelo '+esc(ai.model||'Claude')+'</span></div>'+
    (!on&&isAdmin()?'<p style="margin-top:12px;color:#FFE08A">Para ligar: no Supabase, em Edge Functions → Secrets, adicione ANTHROPIC_API_KEY com a chave da Anthropic. A varredura começa sozinha em até 2 minutos.</p>':'')+
    '</div><div></div></div>'+
    '<div class="kpis">'+k('spark','Analisadas',withI.length.toLocaleString('pt-BR'),'de '+L.length.toLocaleString('pt-BR')+' em aberto')+k('flame','Quentes',hot.length,'alta chance de fechar')+k('alert','Risco alto',risk.length,'precisam de atenção')+k('clock','Aguardando',wait.length,'cliente esperando resposta')+k('target','Chance média',avg+'%','dos leads analisados')+'</div>'+
-   '<div class="grid2"><div class="card"><div class="ch">'+ico('target')+'<b>Prioridades agora</b><span>'+pri.length+' leads</span></div>'+
-   (pri.map(l=>{const i=S.ins[l.id]||{};return'<button class="prio-item" data-act="open" data-id="'+l.id+'">'+avatar(l.name||l.phone)+'<div style="min-width:0"><div class="row" style="gap:6px"><b style="font-size:13.5px">'+esc(l.name||phone(l.phone))+'</b>'+tempBadge(l)+(i.risk_level==='alto'?'<span class="chip crit">Risco alto</span>':'')+(waiting(l)?'<span class="chip warn">Aguardando</span>':'')+(isAdmin()?'<span class="chip">'+esc(agentName(l.owner_id))+'</span>':'')+'</div><p>'+esc(i.next_step||i.summary||'')+'</p></div>'+ico('arrow','sm')+'</button>'}).join('')||'<div class="empty"><b>Nada urgente</b><span>Quando eu encontrar leads quentes, em risco ou esperando resposta, eles aparecem aqui.</span></div>')+'</div>'+
-   '<div class="card"><div class="ch">'+brain(30,!on)+'<b>Atividade ao vivo</b><span>'+(on?'<span class="live"></span> analisando':'')+'</span></div><div class="feed">'+
+   '<div class="grid2"><div class="card"><div class="ch">'+ico('target')+'<b>Prioridades agora</b><span class="cr">'+pri.length+' leads</span></div><div class="plist">'+
+   (pri.map(l=>{const i=S.ins[l.id]||{};return'<button class="prio-item" data-act="open" data-id="'+l.id+'">'+avatar(l.name||l.phone)+'<div style="min-width:0"><div class="row" style="gap:6px"><b style="font-size:13.5px">'+esc(l.name||phone(l.phone))+'</b>'+tempBadge(l)+(i.risk_level==='alto'?'<span class="chip crit">Risco alto</span>':'')+(waiting(l)?'<span class="chip warn">Aguardando</span>':'')+(isAdmin()?'<span class="chip">'+esc(agentName(l.owner_id))+'</span>':'')+'</div><p>'+esc(i.next_step||i.summary||'')+'</p></div>'+ico('arrow','sm')+'</button>'}).join('')||'<div class="empty"><b>Nada urgente</b><span>Quando eu encontrar leads quentes, em risco ou esperando resposta, eles aparecem aqui.</span></div>')+'</div></div>'+
+   '<div class="card"><div class="ch">'+brain(34,!on)+'<b>Atividade ao vivo</b><span class="cr">'+(on?'<span class="live"></span> analisando':'')+'</span></div><div class="feed">'+
    (visActs.map(a=>'<div class="fi'+(a.kind==='alert'?' alert':'')+'"><div class="ic">'+ico(a.kind==='alert'?'alert':'spark','sm')+'</div><div>'+(a.lead_id?'<a href="#" data-act="open" data-id="'+a.lead_id+'" style="color:inherit;text-decoration:none">'+esc(a.text)+'</a>':esc(a.text))+'<small>'+fDT(a.created_at)+'</small></div></div>').join('')||'<div class="empty"><span>As análises aparecem aqui em tempo real.</span></div>')+'</div></div></div>'+
    (isAdmin()?'<div class="card" style="overflow-x:auto"><div class="ch">'+ico('users')+'<b>Raio-X por consultor</b></div><table><thead><tr><th>Consultor</th><th>Em aberto</th><th>Aguardando</th><th>Quentes</th><th>Risco alto</th><th>Chance média</th></tr></thead><tbody>'+
    S.agents.filter(a=>a.in_queue).map(a=>{const mine=L.filter(l=>l.owner_id===a.id),mi=mine.filter(l=>S.ins[l.id]&&S.ins[l.id].summary);const av=mi.length?Math.round(mi.reduce((s,l)=>s+(S.ins[l.id].score||0),0)/mi.length)+'%':'—';
@@ -630,7 +654,7 @@ function lumiView(){
 }
 function equipe(){
   const q=S.agents.filter(a=>a.in_queue).sort((a,b)=>a.queue_position-b.queue_position);
-  return'<div class="pad" style="display:grid;gap:16px;max-width:960px"><p style="margin:0;color:var(--muted)">Cada lead novo vai para a próxima pessoa <b>online</b> da fila, em ordem. Quem está ocupado, ausente ou offline é pulado. Cliente que volta continua com a mesma pessoa.</p>'+
+  return'<div class="pad" style="display:grid;gap:16px;max-width:1100px;margin:0 auto"><p style="margin:0;color:var(--muted)">Cada lead novo vai para a próxima pessoa <b>online</b> da fila, em ordem. Quem está ocupado, ausente ou offline é pulado. Cliente que volta continua com a mesma pessoa.</p>'+
    '<div class="card" style="overflow-x:auto"><table><thead><tr><th>Posição</th><th>Pessoa</th><th>Status</th><th>Leads abertos</th><th>Login</th></tr></thead><tbody>'+
    q.map(a=>{const[n,c]=STATUS[a.status||'offline'];return'<tr><td class="mono">#'+a.queue_position+'</td><td><div class="row">'+avatar(a.name)+'<b>'+esc(a.name)+'</b></div></td><td><span class="chip"><span class="dot" style="background:'+c+'"></span>'+n+'</span>'+(a.status_at?' <small style="color:var(--faint)">desde '+fDT(a.status_at)+'</small>':'')+'</td><td class="mono">'+S.leads.filter(l=>l.owner_id===a.id&&!CLOSED.includes(l.stage)).length.toLocaleString('pt-BR')+'</td><td>'+(a.user_id?'<span class="chip accent">Ativo</span>':'<span class="chip warn">Sem login</span>')+'</td></tr>'}).join('')+
    '</tbody></table></div><p style="margin:0;color:var(--muted);font-size:12.5px">Administradores: '+S.agents.filter(a=>a.role==='admin').map(a=>esc(a.name)).join(', ')+'. Eles veem todos os leads e não entram na fila.</p></div>';
