@@ -338,6 +338,36 @@ tr:last-child td{border-bottom:0}
 @media (max-width:1100px){.core{grid-template-columns:1fr 1fr}.core .stage{grid-column:1/-1;order:-1}}
 @media (max-width:720px){.core{grid-template-columns:1fr;padding:12px;gap:12px}.core .brain{width:180px!important;height:180px!important}.ident b{font-size:20px}}
 
+
+/* ---------- anexos ---------- */
+.btn.icon{width:38px;height:38px;padding:0;justify-content:center;border-radius:10px}
+.tray{display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px}
+.ti{flex:0 0 auto;display:flex;align-items:center;gap:9px;max-width:260px;padding:6px 8px 6px 6px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);position:relative}
+.ti img{width:44px;height:44px;border-radius:8px;object-fit:cover;flex:none}
+.tic{width:44px;height:44px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;align-content:center;gap:1px;flex:none}
+.tic span{font-size:9px;font-weight:700;letter-spacing:.04em}
+.tm{min-width:0;display:grid}.tm b{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tm span{font-size:11px;color:var(--muted);white-space:nowrap}
+.tx{border:0;background:var(--surface);border:1px solid var(--line);border-radius:50%;width:24px;height:24px;display:grid;place-items:center;cursor:pointer;color:var(--muted);flex:none}.tx:hover{color:var(--crit)}
+.ti.ok{border-color:var(--accent-line);background:var(--accent-soft)}.ti.ok>svg{color:var(--accent)}.ti.err{border-color:var(--crit);background:var(--crit-soft)}.ti.err>svg{color:var(--crit)}
+.ti.up{opacity:.85}
+.ti.add{cursor:pointer;color:var(--muted);border-style:dashed;background:none;gap:6px;font-size:12px;padding:0 14px}.ti.add:hover{color:var(--ink)}
+.pane.chat.drop{outline:2px dashed var(--accent);outline-offset:-10px}
+.pane.chat.drop .msgs::after{content:"Solte os arquivos para anexar";position:absolute;inset:auto 0 50% 0;text-align:center;font-weight:600;color:var(--accent)}
+.msgs{position:relative}
+.recbar{display:flex;align-items:center;gap:10px;border:1px solid var(--crit-soft);background:color-mix(in srgb,var(--crit-soft) 50%,var(--surface));border-radius:12px;padding:9px 12px;flex-wrap:wrap}
+.recdot{width:10px;height:10px;border-radius:50%;background:var(--crit);animation:ping 1.4s infinite;box-shadow:0 0 0 0 rgba(192,67,47,.5)}
+.recw{display:flex;gap:2px;align-items:center;height:22px;flex:1;min-width:80px}
+.recw i{width:3px;height:100%;border-radius:2px;background:var(--crit);opacity:.75;animation:wv .9s ease-in-out infinite}
+.bub.media{padding:4px 4px 6px}.bub.media .btx{padding:4px 8px 0}.bub.media .meta{padding:0 8px}
+.mimg{display:block;border-radius:10px;overflow:hidden;max-width:min(340px,100%)}.mimg img{display:block;width:100%;max-height:360px;object-fit:cover}
+.mvid{display:block;max-width:min(360px,100%);max-height:360px;border-radius:10px;background:#000}
+.maud{display:block;width:min(300px,64vw);height:40px;margin:2px 4px}
+.mfile{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--surface-2) 70%,transparent);border:1px solid var(--line);text-decoration:none;color:inherit;min-width:220px;max-width:340px}
+.mfile:hover{border-color:var(--line-strong)}
+.mfi{position:relative;width:38px;height:44px;color:var(--accent);display:grid;place-items:center;flex:none}.mfi svg{width:34px;height:40px;stroke-width:1.4}.mfi i{position:absolute;bottom:7px;font-style:normal;font-size:8.5px;font-weight:700}
+.mfn{flex:1;min-width:0;display:grid}.mfn b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mfn small{font-size:11px;color:var(--muted)}
+.mph{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:12.5px;color:var(--muted)}
+
 /* ---------- responsivo ---------- */
 @media (max-width:1440px){.inbox{grid-template-columns:310px minmax(0,1fr) 340px}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media (max-width:1320px){.kpis{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}.grid2{grid-template-columns:1fr}.grid2>.card{height:auto;max-height:520px}}
@@ -405,6 +435,7 @@ tr:last-child td{border-bottom:0}
 <body>
 <div id="app"></div>
 <div id="modal"></div>
+<input type="file" id="filepick" multiple hidden>
 <div class="toasts" id="toasts"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
@@ -421,7 +452,7 @@ const CLOSED=['ganho','perdido'];
 const TOUCH=window.matchMedia&&matchMedia('(pointer:coarse)').matches;
 const TEMPC={quente:'#E07A1F',morno:'#E0A82B',frio:'#5B88B8'};
 const RISKC={alto:'var(--crit)',medio:'var(--warn)',baixo:'var(--good)'};
-const S={session:null,me:null,agents:[],leads:[],ins:{},act:[],ai:null,msgs:[],hist:[],sel:null,view:'inbox',filter:'abertas',q:'',owner:'all',tag:'all',draft:'',mode:'out',modal:null,showCrm:false,loading:true,err:'',chans:[],msgChan:null,drag:null,busy:{}};
+const S={session:null,me:null,agents:[],leads:[],ins:{},act:[],ai:null,msgs:[],hist:[],sel:null,view:'inbox',filter:'abertas',q:'',owner:'all',tag:'all',draft:'',mode:'out',modal:null,showCrm:false,loading:true,err:'',chans:[],msgChan:null,drag:null,busy:{},files:[],rec:null,urls:{}};
 
 /* ---------- icons ---------- */
 const IC={
@@ -442,6 +473,12 @@ const IC={
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   check:'<path d="M20 6 9 17l-5-5"/>',
   target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  clip:'<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+  mic:'<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  file:'<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6"/>',
+  dl:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/>',
+  stop:'<rect x="6" y="6" width="12" height="12" rx="2"/>',
   bulb:'<path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/>'
 };
 const ico=(n,cls)=>'<svg class="i'+(cls?' '+cls:'')+'" viewBox="0 0 24 24" aria-hidden="true">'+IC[n]+'</svg>';
@@ -541,7 +578,7 @@ function subscribe(){
 }
 function notify(l){try{if(document.hidden&&'Notification' in window&&Notification.permission==='granted')new Notification('Central Comercial',{body:(l.name||phone(l.phone))+': '+(l.last_msg||'nova mensagem')})}catch(e){}}
 async function openLead(id){
-  S.sel=id;S.view='inbox';S.showCrm=false;S.draft='';S.mode='out';S.msgs=[];S.hist=[];render();
+  if(S.rec)stopRec(false);S.files.forEach(f=>f.url&&URL.revokeObjectURL(f.url));S.files=[];S.sel=id;S.view='inbox';S.showCrm=false;S.draft='';S.mode='out';S.msgs=[];S.hist=[];render();
   if(S.msgChan){sb.removeChannel(S.msgChan);S.msgChan=null}
   const [{data:m},{data:a},{data:h}]=await Promise.all([
     sb.from('crm_messages').select('*').eq('lead_id',id).order('created_at').limit(1000),
@@ -562,6 +599,80 @@ async function askLumi(id){
   else{S.ins[id]=data;toast('Lumi analisou a conversa.')}
   render();
 }
+
+/* ---------- anexos e áudio ---------- */
+const MEDIA_T=['image','video','audio','document','sticker','link'];
+const MBy=1048576;
+function fsize(n){if(n==null)return'';if(n<1024)return n+' B';if(n<MBy)return Math.round(n/1024)+' KB';return(n/MBy).toFixed(n<10*MBy?1:0).replace('.',',')+' MB'}
+function kindFor(mime,size){mime=(mime||'').split(';')[0].toLowerCase();
+  if((mime==='image/jpeg'||mime==='image/png')&&size<=5*MBy)return'image';
+  if((mime==='video/mp4'||mime==='video/3gpp')&&size<=16*MBy)return'video';
+  if(['audio/aac','audio/amr','audio/mpeg','audio/mp4','audio/ogg'].includes(mime)&&size<=16*MBy)return'audio';
+  if(['application/pdf','text/plain','application/msword','application/vnd.ms-excel','application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.openxmlformats-officedocument.presentationml.presentation'].includes(mime)&&size<=100*MBy)return'document';
+  return'link'}
+const KLAB={image:'Foto',video:'Vídeo',audio:'Áudio',document:'Documento',link:'Vai como link de download'};
+let FID=0;
+function addFiles(list){
+  const arr=[...list].filter(f=>f&&f.size>=0);if(!arr.length)return;
+  const big=arr.filter(f=>f.size>100*MBy);if(big.length)toast('Arquivos acima de 100 MB não podem ser enviados: '+big.map(f=>f.name).join(', '),true);
+  arr.filter(f=>f.size<=100*MBy).forEach(f=>S.files.push({id:++FID,file:f,name:f.name||('arquivo-'+FID),mime:f.type||'application/octet-stream',size:f.size,url:/^(image|video|audio)\//.test(f.type)?URL.createObjectURL(f):null,st:''}));
+  S.mode='out';render();
+}
+function trayHtml(){
+  return'<div class="tray">'+S.files.map(f=>{const k=kindFor(f.mime,f.size),img=f.mime.startsWith('image/')&&f.url;
+    return'<div class="ti'+(f.st?' '+f.st:'')+'">'+(img?'<img src="'+f.url+'" alt="">':'<div class="tic">'+ico(f.mime.startsWith('audio/')?'mic':f.mime.startsWith('video/')?'chat':'file')+'<span>'+esc((f.name.split('.').pop()||'').slice(0,5).toUpperCase())+'</span></div>')+
+    '<div class="tm"><b title="'+esc(f.name)+'">'+esc(f.name)+'</b><span>'+fsize(f.size)+' · '+(f.mime.startsWith('image/')&&k==='link'?'Foto (será otimizada)':KLAB[k])+'</span></div>'+
+    (f.st==='up'?'<span class="spin"></span>':f.st==='ok'?ico('check','sm'):f.st==='err'?ico('alert','sm'):'<button class="tx" data-act="rmfile" data-v="'+f.id+'" aria-label="Remover">'+ico('x','sm')+'</button>')+'</div>'}).join('')+
+    '<button class="ti add" data-act="attach">'+ico('clip','sm')+'<span>Adicionar</span></button></div>';
+}
+async function optimizeImage(f){
+  const ok=['image/jpeg','image/png'];if(!f.mime.startsWith('image/')||(ok.includes(f.mime)&&f.size<=5*MBy)||f.mime==='image/gif')return f;
+  try{const bmp=await createImageBitmap(f.file);let w=bmp.width,h=bmp.height;const max=3000;if(Math.max(w,h)>max){const r=max/Math.max(w,h);w=Math.round(w*r);h=Math.round(h*r)}
+    const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(bmp,0,0,w,h);
+    let q=.9,blob;for(let i=0;i<6;i++){blob=await new Promise(r=>c.toBlob(r,'image/jpeg',q));if(blob&&blob.size<=5*MBy)break;q-=.12}
+    if(!blob)return f;const name=f.name.replace(/\.[^.]+$/,'')+'.jpg';return{...f,file:new File([blob],name,{type:'image/jpeg'}),name,mime:'image/jpeg',size:blob.size}}catch(e){return f}
+}
+async function sendFiles(l){
+  if(S.sending)return;S.sending=true;let caption=S.draft.trim();S.draft='';render();let fails=0;
+  for(const f0 of S.files){if(f0.st==='ok')continue;f0.st='up';render();
+    try{const f=await optimizeImage(f0);
+      const safe=(f.name||'arquivo').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w.\-]+/g,'_').slice(-80);
+      const path=l.id+'/out/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'-'+safe;
+      const {error:ue}=await sb.storage.from('crm-media').upload(path,f.file,{contentType:f.mime,upsert:false});if(ue)throw new Error(ue.message);
+      const {data,error}=await sb.functions.invoke('crm-send',{body:{lead_id:l.id,media:{path,name:f.name,mime:f.mime,size:f.size},caption}});
+      if(error||data?.error){let msg=data?.error;try{msg=msg||(await error.context.json()).error}catch(x){}throw new Error(msg||'Não foi possível enviar.')}
+      f0.st='ok';caption='';
+    }catch(e){f0.st='err';fails++;toast(f0.name+': '+e.message,true)}
+    render()}
+  S.sending=false;
+  if(!fails){S.files.forEach(f=>f.url&&URL.revokeObjectURL(f.url));S.files=[]}else S.files=S.files.filter(f=>f.st!=='ok');
+  if(caption)S.draft=caption;render();
+}
+function signedUrl(path){const c=S.urls[path];if(c&&c.exp>Date.now())return c.url;if(c&&c.loading)return null;
+  S.urls[path]={loading:true,exp:0};sb.storage.from('crm-media').createSignedUrl(path,3600).then(({data})=>{S.urls[path]={url:data&&data.signedUrl,exp:Date.now()+3500e3};schedule()});return null}
+function mediaHtml(m){
+  if(!m.media_path){return MEDIA_T.includes(m.msg_type)&&m.msg_type!=='link'?'<div class="mph">'+ico(m.msg_type==='audio'?'mic':'file','sm')+({image:'Foto',video:'Vídeo',audio:'Áudio',document:'Documento',sticker:'Figurinha'}[m.msg_type]||'Arquivo')+(m.direction==='in'?' · disponível quando o token da Meta estiver configurado':'')+'</div>':''}
+  const u=signedUrl(m.media_path),mime=(m.mime||'').toLowerCase(),name=esc(m.file_name||'arquivo');
+  if(!u)return'<div class="mph"><span class="spin"></span>Carregando '+name+'</div>';
+  if(mime.startsWith('image/'))return'<a href="'+u+'" target="_blank" rel="noopener" class="mimg"><img src="'+u+'" alt="'+name+'" loading="lazy"></a>';
+  if(mime.startsWith('video/'))return'<video class="mvid" src="'+u+'" controls preload="metadata"></video>';
+  if(mime.startsWith('audio/'))return'<audio class="maud" src="'+u+'" controls preload="metadata"></audio>';
+  return'<a class="mfile" href="'+u+'" target="_blank" rel="noopener" download="'+name+'"><span class="mfi">'+ico('file')+'<i>'+esc((m.file_name||'').split('.').pop().slice(0,4).toUpperCase())+'</i></span><span class="mfn"><b>'+name+'</b><small>'+fsize(m.file_size)+(m.msg_type==='link'?' · enviado como link':'')+'</small></span>'+ico('dl','sm')+'</a>';
+}
+function recHtml(){const s=Math.floor((Date.now()-S.rec.t0)/1000);
+  return'<div class="recbar"><span class="recdot"></span><b class="mono">'+pad(Math.floor(s/60))+':'+pad(s%60)+'</b><span class="recw">'+Array.from({length:28},(_,k)=>'<i style="animation-delay:'+(k*.07).toFixed(2)+'s"></i>').join('')+'</span>'+
+  '<button class="btn sm" data-act="reccancel">'+ico('x','sm')+'Cancelar</button><button class="btn sm pri" data-act="recsend">'+ico('send','sm')+'Enviar áudio</button></div>'}
+let recTimer=0;
+async function loadRecorder(){if(window.Recorder)return;await new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='vendor/recorder.min.js';sc.onload=ok;sc.onerror=no;document.head.appendChild(sc)})}
+async function startRec(){
+  try{await loadRecorder();if(!Recorder.isRecordingSupported())throw new Error('Este navegador não grava áudio.');
+    const r=new Recorder({encoderPath:'vendor/encoderWorker.min.js',numberOfChannels:1,encoderApplication:2048,encoderSampleRate:48000,streamPages:false,mediaTrackConstraints:{echoCancellation:true,noiseSuppression:true}});
+    r.ondataavailable=buf=>{const keep=S.rec&&S.rec.send;const lid=S.rec&&S.rec.lead;S.rec=null;clearInterval(recTimer);
+      if(keep){const f=new File([buf],'audio-'+new Date().toTimeString().slice(0,5).replace(':','h')+'.ogg',{type:'audio/ogg'});S.files=S.files.filter(x=>x.st!=='ok');addFiles([f]);const l=S.leads.find(x=>x.id===lid);if(l&&S.sel===lid)sendFiles(l)}else render()};
+    await r.start();S.rec={r,t0:Date.now(),lead:S.sel};recTimer=setInterval(schedule,500);render();
+  }catch(e){S.rec=null;toast(e&&e.name==='NotAllowedError'?'Permita o uso do microfone no navegador para gravar áudio.':(e.message||'Não foi possível gravar.'),true);render()}
+}
+function stopRec(send){if(!S.rec)return;S.rec.send=send;try{S.rec.r.stop()}catch(e){S.rec=null;render()}}
 
 /* ---------- render ---------- */
 let raf=0;function schedule(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;render()})}
@@ -637,17 +748,20 @@ function lumiStrip(l){
 function chat(l){
   let last='';const body=S.msgs.map(m=>{let h='';const d=fD(m.created_at);if(d!==last){last=d;h+='<div class="day">'+d+'</div>'}
     const cls=m.direction==='in'?'in':m.direction==='note'?'note':'out';
-    h+='<div class="bub '+cls+(m.status==='failed'?' fail':'')+'">'+(m.direction==='note'?'<div style="font-size:11px;font-weight:600;color:var(--warn)">Nota interna · '+esc(agentName(m.sent_by))+'</div>':'')+esc(m.body||'['+m.msg_type+']')+
+    h+='<div class="bub '+cls+(m.status==='failed'?' fail':'')+(m.media_path||MEDIA_T.includes(m.msg_type)?' media':'')+'">'+(m.direction==='note'?'<div style="font-size:11px;font-weight:600;color:var(--warn)">Nota interna · '+esc(agentName(m.sent_by))+'</div>':'')+mediaHtml(m)+(m.body?'<div class="btx">'+esc(m.body)+'</div>':((m.media_path||MEDIA_T.includes(m.msg_type))?'':esc('['+m.msg_type+']')))+
       '<div class="meta">'+(m.direction==='out'&&isAdmin()&&m.sent_by?esc(agentName(m.sent_by))+' · ':'')+fTime(m.created_at)+(m.direction==='out'?' · '+({sent:'enviada',delivered:'entregue',read:'lida',failed:'falhou'}[m.status]||''):'')+'</div>'+(m.error?'<div style="color:var(--crit);font-size:11.5px">'+esc(m.error)+'</div>':'')+'</div>';return h}).join('');
   const open=windowOpen(l);const left=open?24*H-(Date.now()-t(l.last_in_at)):0;
   const mine=isAdmin()||l.owner_id===S.me.id;
   return'<div class="pane chat"><div class="chead"><button class="btn sm back" data-act="back" aria-label="Voltar">'+ico('back','sm')+'</button>'+avatar(l.name||l.phone)+'<div class="who"><b>'+esc(l.name||'Cliente sem nome')+'</b><span>'+phone(l.phone)+'</span></div>'+
    '<select class="inp sm" id="stagesel" data-change="stage" style="width:auto" aria-label="Etapa do funil">'+STAGES.map(s=>'<option value="'+s[0]+'"'+(l.stage===s[0]?' selected':'')+'>'+s[1]+'</option>').join('')+'</select><button class="btn sm fichabtn" data-act="togglecrm">'+ico('panel','sm')+'<span class="t">Ficha</span></button></div>'+
    '<div class="msgs" data-keep="msgs">'+(body||'<div class="empty" style="margin:auto"><b>Sem mensagens ainda</b><span>Quando o número de vendas estiver conectado, a conversa aparece aqui.</span></div>')+'</div>'+
-   (mine?'<div class="composer">'+(S.mode==='out'?lumiStrip(l):'')+'<div class="bar"><div class="seg">'+[['out','Responder'],['note','Nota interna']].map(([k,n])=>'<button data-act="mode" data-v="'+k+'" class="'+(S.mode===k?'on':'')+'">'+n+'</button>').join('')+'</div>'+
+   (mine?'<div class="composer">'+(S.mode==='out'&&!S.files.length&&!S.rec?lumiStrip(l):'')+'<div class="bar"><div class="seg">'+[['out','Responder'],['note','Nota interna']].map(([k,n])=>'<button data-act="mode" data-v="'+k+'" class="'+(S.mode===k?'on':'')+'">'+n+'</button>').join('')+'</div>'+
    '<span class="winfo" style="color:'+(open?'var(--good)':'var(--warn)')+'">'+ico('clock','sm')+(open?'Janela de 24 h aberta · '+Math.floor(left/H)+' h '+Math.floor(left%H/6e4)+' min':'Janela de 24 h fechada · só modelo aprovado')+'</span></div>'+
    (S.mode==='out'&&!open?'<div class="bar"><button class="btn pri" data-act="template">'+ico('send','sm')+'Enviar modelo de boas-vindas</button><span style="font-size:12px;color:var(--muted)">Quando o cliente responder, a janela abre e você conversa normalmente.</span></div>':
-   '<textarea class="inp" id="composer" rows="2" placeholder="'+(S.mode==='out'?'Escreva a mensagem ou clique numa sugestão da Lumi (Ctrl+Enter envia)':'Nota interna, só a equipe vê')+'" data-input="draft">'+esc(S.draft)+'</textarea><div class="bar"><span class="grow"></span><button class="btn pri" data-act="send"'+(S.sending?' disabled':'')+'>'+ico('send','sm')+(S.mode==='out'?'Enviar':'Salvar nota')+'</button></div>')+'</div>':'')+'</div>';
+   (S.mode==='out'&&S.files.length?trayHtml():'')+
+   (S.rec?recHtml():'<textarea class="inp" id="composer" rows="2" placeholder="'+(S.mode==='out'?(S.files.length?'Legenda (opcional) para o primeiro arquivo':'Escreva a mensagem, arraste arquivos aqui ou clique numa sugestão da Lumi (Ctrl+Enter envia)'):'Nota interna, só a equipe vê')+'" data-input="draft">'+esc(S.draft)+'</textarea>')+
+   '<div class="bar">'+(S.mode==='out'&&!S.rec?'<button class="btn icon" data-act="attach" title="Anexar arquivos (fotos, vídeos, áudios, PDF, qualquer tipo)" aria-label="Anexar arquivos">'+ico('clip')+'</button><button class="btn icon" data-act="rec" title="Gravar áudio" aria-label="Gravar áudio">'+ico('mic')+'</button>':'')+'<span class="grow"></span>'+
+   (S.rec?'':'<button class="btn pri" data-act="send"'+(S.sending?' disabled':'')+'>'+(S.sending?'<span class="spin"></span>':ico('send','sm'))+(S.mode==='out'?(S.files.length?'Enviar '+S.files.length+(S.files.length>1?' arquivos':' arquivo'):'Enviar'):'Salvar nota')+'</button>')+'</div>')+'</div>':'')+'</div>';
 }
 function lumiCard(l){
   const i=S.ins[l.id],busy=S.busy[l.id];
@@ -780,6 +894,11 @@ document.addEventListener('click',async e=>{
   else if(a==='status'){const {error}=await sb.rpc('crm_set_status',{p_status:v});if(error)toast(error.message,true);else{S.me.status=v;render()}}
   else if(a==='prio'){const l=L();const {error}=await sb.from('crm_leads').update({priority:!l.priority}).eq('id',l.id);if(error)toast(error.message,true)}
   else if(a==='lumi'){if(S.sel)askLumi(S.sel)}
+  else if(a==='attach'){if(!windowOpen(L())){toast('A janela de 24 h está fechada: envie o modelo de boas-vindas primeiro.',true);return}$('#filepick').click()}
+  else if(a==='rmfile'){const f=S.files.find(x=>x.id==v);if(f&&f.url)URL.revokeObjectURL(f.url);S.files=S.files.filter(x=>x.id!=v);render()}
+  else if(a==='rec'){if(!windowOpen(L())){toast('A janela de 24 h está fechada: envie o modelo de boas-vindas primeiro.',true);return}startRec()}
+  else if(a==='reccancel')stopRec(false);
+  else if(a==='recsend')stopRec(true);
   else if(a==='kmore'){S.kmore[v]=(S.kmore[v]||40)+40;render()}
   else if(a==='usesug'){const i=S.ins[S.sel];const s=i&&i.suggestions&&i.suggestions[+el.dataset.k];if(!s)return;S.mode='out';S.draft=s.text;render();const c=$('#composer');if(c){c.focus();c.setSelectionRange(c.value.length,c.value.length)}else toast('A janela de 24 h está fechada: envie o modelo de boas-vindas primeiro.',true)}
   else if(a==='applyex'){const l=L(),ex=(S.ins[l.id]||{}).extracted||{};const p={};
@@ -789,7 +908,8 @@ document.addEventListener('click',async e=>{
     const {error}=await sb.from('crm_leads').update(p).eq('id',l.id);if(error)toast(error.message,true);else toast('Ficha preenchida com o que o cliente informou.')}
   else if(a==='applystage'){await moveStage(S.sel,v)}
   else if(a==='send'){
-    const l=L();const text=S.draft.trim();if(!l||!text||S.sending)return;
+    const l=L();if(l&&S.mode==='out'&&S.files.length){sendFiles(l);return}
+    const text=S.draft.trim();if(!l||!text||S.sending)return;
     if(S.mode==='note'){const {error}=await sb.rpc('crm_add_note',{p_lead:l.id,p_body:text});if(error)return toast(error.message,true);S.draft='';render();return}
     S.sending=true;render();
     const {data,error}=await sb.functions.invoke('crm-send',{body:{lead_id:l.id,text}});
@@ -822,6 +942,12 @@ document.addEventListener('change',async e=>{
   else if(k==='tag'){S.tag=el.value;render()}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)&&e.target.id==='composer'){document.querySelector('[data-act="send"]')?.click()}if(e.key==='Escape'&&S.modal){S.modal=null;render()}});
+document.addEventListener('change',e=>{if(e.target.id==='filepick'){addFiles(e.target.files);e.target.value=''}});
+document.addEventListener('paste',e=>{if(!S.sel||S.mode!=='out')return;const fs=[...(e.clipboardData&&e.clipboardData.files||[])];if(fs.length){e.preventDefault();addFiles(fs)}});
+const isFileDrag=e=>e.dataTransfer&&[...e.dataTransfer.types].includes('Files');
+document.addEventListener('dragover',e=>{if(!isFileDrag(e))return;const c=e.target.closest&&e.target.closest('.pane.chat');if(c&&S.sel){e.preventDefault();c.classList.add('drop')}});
+document.addEventListener('dragleave',e=>{const c=e.target.closest&&e.target.closest('.pane.chat');if(c&&!c.contains(e.relatedTarget))c.classList.remove('drop')});
+document.addEventListener('drop',e=>{if(!isFileDrag(e))return;const c=e.target.closest&&e.target.closest('.pane.chat');e.preventDefault();if(c){c.classList.remove('drop');const l=S.leads.find(x=>x.id===S.sel);if(l&&!windowOpen(l)){toast('A janela de 24 h está fechada: envie o modelo de boas-vindas primeiro.',true);return}addFiles(e.dataTransfer.files)}});
 document.addEventListener('dragstart',e=>{const c=e.target.closest&&e.target.closest('.kc');if(c){S.drag=c.dataset.lead;try{e.dataTransfer.setData('text/plain',S.drag)}catch(x){}}});
 document.addEventListener('dragover',e=>{const c=e.target.closest&&e.target.closest('.col');if(c&&S.drag){e.preventDefault();document.querySelectorAll('.col.over').forEach(x=>x!==c&&x.classList.remove('over'));c.classList.add('over')}});
 document.addEventListener('drop',async e=>{const c=e.target.closest&&e.target.closest('.col');if(!c||!S.drag)return;e.preventDefault();const id=S.drag;S.drag=null;c.classList.remove('over');await moveStage(id,c.dataset.stage);render()});
