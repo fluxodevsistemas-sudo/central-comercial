@@ -842,7 +842,7 @@ function chat(l){
    (S.mode==='out'&&!open&&metaCh?'<div class="bar"><span style="font-size:12.5px;color:var(--muted)">Este cliente fala com o número oficial de '+esc(S.chan.consultor)+'. Fora da janela de 24 h, só é possível responder quando ele mandar mensagem.</span></div>':
    S.mode==='out'&&!open?'<div class="bar"><button class="btn pri" data-act="template">'+ico('send','sm')+'Enviar modelo de boas-vindas</button><span style="font-size:12px;color:var(--muted)">Quando o cliente responder, a janela abre e você conversa normalmente.</span></div>':
    (S.mode==='out'&&S.files.length?trayHtml():'')+
-   (S.rec?recHtml():'<textarea class="inp" id="composer" rows="2" placeholder="'+(S.mode==='out'?(S.files.length?'Legenda (opcional) para o primeiro arquivo':'Escreva a mensagem, arraste arquivos aqui ou clique numa sugestão da Lumi (Ctrl+Enter envia)'):'Nota interna, só a equipe vê')+'" data-input="draft">'+esc(S.draft)+'</textarea>')+
+   (S.rec?recHtml():'<textarea class="inp" id="composer" rows="2" placeholder="'+(S.mode==='out'?(S.files.length?'Legenda (opcional) para o primeiro arquivo':'Escreva a mensagem, arraste arquivos aqui ou clique numa sugestão da Lumi · Enter envia, Shift+Enter quebra linha'):'Nota interna, só a equipe vê')+'" data-input="draft">'+esc(S.draft)+'</textarea>')+
    '<div class="bar">'+(S.mode==='out'&&!S.rec?'<button class="btn icon" data-act="attach" title="Anexar arquivos (fotos, vídeos, áudios, PDF, qualquer tipo)" aria-label="Anexar arquivos">'+ico('clip')+'</button><button class="btn icon" data-act="rec" title="Gravar áudio" aria-label="Gravar áudio">'+ico('mic')+'</button>':'')+'<span class="grow"></span>'+
    (S.rec?'':'<button class="btn pri" data-act="send"'+(S.sending?' disabled':'')+'>'+(S.sending?'<span class="spin"></span>':ico('send','sm'))+(S.mode==='out'?(S.files.length?'Enviar '+S.files.length+(S.files.length>1?' arquivos':' arquivo'):'Enviar'):'Salvar nota')+'</button>')+'</div>')+'</div>':'')+'</div>';
 }
@@ -1079,7 +1079,7 @@ document.addEventListener('change',async e=>{
   else if(k==='owner'){S.owner=el.value;render()}
   else if(k==='tag'){S.tag=el.value;render()}
 });
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)&&e.target.id==='composer'){document.querySelector('[data-act="send"]')?.click()}if(e.key==='Escape'&&S.modal){S.modal=null;render()}});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='composer'&&!e.shiftKey&&!e.altKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();const b=document.querySelector('[data-act="send"]');if(b&&!b.disabled)b.click()}if(e.key==='Escape'&&S.modal){S.modal=null;render()}});
 document.addEventListener('change',e=>{if(e.target.id==='filepick'){addFiles(e.target.files);e.target.value=''}});
 document.addEventListener('paste',e=>{if(!S.sel||S.mode!=='out')return;const fs=[...(e.clipboardData&&e.clipboardData.files||[])];if(fs.length){e.preventDefault();addFiles(fs)}});
 const isFileDrag=e=>e.dataTransfer&&[...e.dataTransfer.types].includes('Files');
