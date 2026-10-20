@@ -403,6 +403,24 @@ tr:last-child td{border-bottom:0}
 .sug.sk{min-height:62px;cursor:default;background:linear-gradient(90deg,var(--surface) 0,var(--gold-soft) 50%,var(--surface) 100%);background-size:200% 100%;animation:shimmer 1.4s linear infinite}
 .sug span{-webkit-line-clamp:3}
 
+
+/* ---------- relatórios ---------- */
+.rel .kpi.hl{background:linear-gradient(160deg,var(--accent-soft),var(--surface) 70%);border-color:var(--accent-line)}
+.kpi .hero-n{font-size:40px;line-height:1;color:var(--accent);font-family:var(--mono)}
+.chartw{position:relative;padding:8px 14px 6px}
+.rchart{width:100%;height:auto;display:block;overflow:visible}
+.rchart .gl{stroke:var(--line);stroke-width:1}.rchart .yl,.rchart .xl{fill:var(--muted);font-size:11px;font-family:var(--mono)}
+.rchart .bar path{fill:color-mix(in srgb,var(--accent) 55%,var(--surface))}.rchart .bar:hover path{fill:var(--accent)}
+.rchart .bar.today path{fill:var(--accent)}
+.rchart .vl{fill:var(--muted);font-size:11px;font-family:var(--mono)}.rchart .vt{fill:var(--ink);font-size:13px;font-weight:600;font-family:var(--mono)}
+.rchart .avg{stroke:var(--gold-deep);stroke-width:1.5;stroke-dasharray:5 4}.rchart .avgt{fill:var(--gold-deep);font-size:11px;font-weight:600}
+.ctip{position:absolute;pointer-events:none;opacity:0;transition:opacity .12s;background:var(--ink);color:var(--bg);font-size:12px;padding:5px 9px;border-radius:7px;white-space:nowrap;box-shadow:var(--shadow)}
+.arow{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line)}.arow:last-child{border-bottom:0}
+.arow b{font-size:13px;min-width:110px}.abar{flex:1;height:6px;border-radius:6px;background:var(--surface-3);overflow:hidden}.abar i{display:block;height:100%;border-radius:6px;background:var(--accent)}
+.arow .an{font-size:15px;font-weight:600;min-width:28px;text-align:right}.arow .as{font-size:12px;color:var(--muted);min-width:34px;text-align:right}
+.rel .grid2>.card{height:auto;max-height:420px}
+.tday{max-height:none}
+
 /* ---------- responsivo ---------- */
 @media (max-width:1440px){.inbox{grid-template-columns:310px minmax(0,1fr) 340px}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media (max-width:1320px){.kpis{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}.grid2{grid-template-columns:1fr}.grid2>.card{height:auto;max-height:520px}}
@@ -514,6 +532,7 @@ const IC={
   file:'<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6"/>',
   dl:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/>',
   stop:'<rect x="6" y="6" width="12" height="12" rx="2"/>',
+  chart:'<path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/>',
   bulb:'<path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/>'
 };
 const ico=(n,cls)=>'<svg class="i'+(cls?' '+cls:'')+'" viewBox="0 0 24 24" aria-hidden="true">'+IC[n]+'</svg>';
@@ -571,6 +590,7 @@ const H=3600e3;
 function t(ts){return ts?new Date(ts).getTime():0}
 function fTime(ts){if(!ts)return'';const d=new Date(ts),n=new Date();if(d.toDateString()===n.toDateString())return pad(d.getHours())+':'+pad(d.getMinutes());return pad(d.getDate())+'/'+pad(d.getMonth()+1)}
 function fDT(ts){if(!ts)return'—';const d=new Date(ts);return pad(d.getDate())+'/'+pad(d.getMonth()+1)+' '+pad(d.getHours())+':'+pad(d.getMinutes())}
+function dayKey(ts){return new Date(ts).toLocaleDateString('sv-SE')}
 function dayLabel(ts){const d=new Date(ts),n=new Date(),y=new Date(Date.now()-864e5);if(d.toDateString()===n.toDateString())return'Hoje';if(d.toDateString()===y.toDateString())return'Ontem';const w=d.toLocaleDateString('pt-BR',{weekday:'long'});const s=d.toLocaleDateString('pt-BR',{day:'numeric',month:'long'})+(d.getFullYear()!==n.getFullYear()?' de '+d.getFullYear():'');return w.charAt(0).toUpperCase()+w.slice(1)+', '+s}
 function fD(ts){if(!ts)return'';const d=new Date(ts);return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()}
 function rel(ts){if(!ts)return'—';const d=Date.now()-t(ts);if(d<6e4)return'agora';if(d<H)return Math.floor(d/6e4)+' min';if(d<24*H)return Math.floor(d/H)+' h';return Math.floor(d/24/H)+' d'}
@@ -742,20 +762,20 @@ function shell(){
   if(!S.me)return'<div class="login"><div class="card"><h1>Sem acesso ao CRM</h1><p class="muted">Seu login existe, mas ainda não foi incluído na equipe da Central Comercial. Peça ao administrador.</p><button class="btn" data-act="logout">Sair</button></div></div>';
   const vis=visible();const unread=vis.filter(l=>l.unread).length;
   const alerts=vis.filter(l=>S.ins[l.id]&&S.ins[l.id].risk_level==='alto'&&!CLOSED.includes(l.stage)).length;
-  const navs=[['inbox','Caixa de entrada','chat',unread],['funil',isAdmin()?'Funil':'Meu funil','kanban',0],['lumi','Lumi · IA','spark',alerts],['equipe','Equipe','users',0]];
+  const navs=[['inbox','Caixa de entrada','chat',unread],['funil',isAdmin()?'Funil':'Meu funil','kanban',0],['lumi','Lumi · IA','spark',alerts],['rel','Relatórios','chart',0],['equipe','Equipe','users',0]];
   const nav=navs.map(([v,n,i,c])=>'<button class="nav-item'+(S.view===v?' on':'')+'" data-act="nav" data-v="'+v+'" title="'+n+'">'+ico(i)+'<span class="t">'+n+'</span>'+(c?'<span class="count'+(v==='lumi'?' gold':'')+'">'+c+'</span>':'')+'</button>').join('');
   const st=S.me.status||'offline';
   const statusBtns=S.me.in_queue?'<div class="status">'+Object.entries(STATUS).map(([k,[n,c]])=>'<button data-act="status" data-v="'+k+'" title="'+n+'" class="'+(st===k?'on':'')+'"><span class="dot" style="background:'+c+'"></span><span class="t">'+n+'</span></button>').join('')+'</div>':'';
   const on=lumiOn();
   const lumiCard='<button class="lumicard" data-act="nav" data-v="lumi">'+brain(48,!on)+'<div class="t"><b>Lumi <span class="live'+(on?'':' off')+'"></span></b><small>'+(on?'Analisando conversas 24 h · '+(S.ai.total_today||0)+' análises hoje':'Aguardando ativação da IA')+'</small></div></button>';
-  const titles={inbox:['Caixa de entrada',isAdmin()?'Todas as conversas do número de vendas':'Suas conversas'],funil:[isAdmin()?'Funil comercial':'Meu funil','Arraste os cartões entre as etapas'],lumi:['Lumi','Inteligência comercial que acompanha as conversas 24 horas'],equipe:['Equipe','Fila automática de distribuição']};
+  const titles={inbox:['Caixa de entrada',isAdmin()?'Todas as conversas do número de vendas':'Suas conversas'],funil:[isAdmin()?'Funil comercial':'Meu funil','Arraste os cartões entre as etapas'],lumi:['Lumi','Inteligência comercial que acompanha as conversas 24 horas'],rel:['Relatórios','Leads que chegam por dia, por consultor e por planilha'],equipe:['Equipe','Fila automática de distribuição']};
   const [h,sub]=titles[S.view];
   const ownerSel=isAdmin()&&S.view!=='equipe'?'<select class="inp sm" id="ownerf" data-change="owner" style="width:auto" aria-label="Filtrar por consultor"><option value="all">Todos os consultores</option>'+S.agents.filter(a=>a.in_queue).map(a=>'<option value="'+a.id+'"'+(S.owner===a.id?' selected':'')+'>'+esc(a.name)+'</option>').join('')+'<option value="none"'+(S.owner==='none'?' selected':'')+'>Sem responsável</option></select>':'';
   const tagSel=S.view!=='equipe'?'<select class="inp sm" id="tagf" data-change="tag" style="width:auto" aria-label="Filtrar por planilha"><option value="all">Todas as planilhas</option>'+allTags().map(g=>'<option value="'+esc(g)+'"'+(S.tag===g?' selected':'')+'>'+esc(g)+'</option>').join('')+'<option value="none"'+(S.tag==='none'?' selected':'')+'>Sem tag</option></select>':'';
   return'<div class="app"><aside class="nav"><div class="brand"><div class="mark">CC</div><div><b>Central Comercial</b><span>Grupo 3 Amores</span></div></div><div class="navlabel">Menu</div>'+nav+lumiCard+
    '<div class="foot"><div class="me" title="'+esc(S.me.name)+'">'+avatar(S.me.name)+'<div class="t"><b>'+esc(S.me.name)+'</b><small>'+(isAdmin()?'Administrador':'Na fila de atendimento')+'</small></div></div>'+statusBtns+'<div class="footlinks"><button class="linkbtn" data-act="notif" title="Notificações">'+ico('bell','sm')+'<span class="t">Notificações</span></button><button class="linkbtn" data-act="logout" title="Sair">'+ico('out','sm')+'<span class="t">Sair</span></button></div></div></aside>'+
    '<main class="main"><header class="top"><div><h1>'+h+'</h1><div class="sub">'+sub+'</div></div><div class="grow"></div>'+tagSel+ownerSel+(S.me.in_queue&&st!=='online'?'<span class="chip warn">Você está '+STATUS[st][0].toLowerCase()+' e não recebe leads novos</span>':'')+'</header>'+
-   '<section class="view">'+(S.view==='inbox'?inbox():S.view==='funil'?funil():S.view==='lumi'?lumiView():equipe())+'</section></main></div>';
+   '<section class="view">'+(S.view==='inbox'?inbox():S.view==='funil'?funil():S.view==='lumi'?lumiView():S.view==='rel'?relView():equipe())+'</section></main></div>';
 }
 function loginView(){
   return'<div class="login"><form class="card" id="loginform"><div class="row" style="gap:12px"><div class="mark">CC</div><div><h1>Central Comercial</h1><span class="muted" style="font-size:12.5px">Grupo 3 Amores · Espaço Cerejeiras</span></div></div><p style="margin:0;color:var(--muted)">Entre com o mesmo e-mail e senha do CRM.</p>'+
@@ -781,11 +801,12 @@ function inbox(){
   if(S.filter==='abertas')L=L.filter(l=>!CLOSED.includes(l.stage));
   if(S.filter==='naolidas')L=L.filter(l=>l.unread);
   if(S.filter==='aguardando')L=L.filter(waiting);
+  if(S.filter==='hoje')L=L.filter(l=>dayKey(l.created_at)===dayKey(new Date()));
   if(S.filter==='quentes')L=L.filter(l=>S.ins[l.id]?.temperature==='quente'&&!CLOSED.includes(l.stage));
   if(S.filter==='encerradas')L=L.filter(l=>CLOSED.includes(l.stage));
   const sel=S.leads.find(l=>l.id===S.sel);
   return'<div class="inbox'+(sel?' sel':'')+(S.showCrm?' showcrm':'')+'">'+(S.showCrm&&sel?'<div class="dscrim" data-act="togglecrm"></div>':'')+'<div class="pane list"><div class="lhead"><div class="search">'+ico('search','sm')+'<input class="inp" id="q" placeholder="Buscar nome, telefone ou mensagem" value="'+esc(S.q)+'" data-input="q"></div>'+
-   '<div class="seg">'+[['abertas','Abertas'],['naolidas','Não lidas'],['aguardando','Aguardando'],['quentes','Quentes'],['encerradas','Encerradas']].map(([k,n])=>'<button data-act="filter" data-v="'+k+'" class="'+(S.filter===k?'on':'')+'">'+n+'</button>').join('')+'</div>'+
+   '<div class="seg">'+[['abertas','Abertas'],['hoje','Hoje · '+visible().filter(l=>dayKey(l.created_at)===dayKey(new Date())).length],['naolidas','Não lidas'],['aguardando','Aguardando'],['quentes','Quentes'],['encerradas','Encerradas']].map(([k,n])=>'<button data-act="filter" data-v="'+k+'" class="'+(S.filter===k?'on':'')+'">'+n+'</button>').join('')+'</div>'+
    '<div class="muted" style="font-size:11.5px">'+L.length.toLocaleString('pt-BR')+' conversas</div></div>'+
    '<div class="convs" data-keep="convs">'+(L.slice(0,300).map(convItem).join('')||'<div class="empty"><b>Nenhuma conversa</b><span>Quando um cliente chamar o número de vendas e cair com você, a conversa aparece aqui.</span></div>')+'</div></div>'+
    (sel?chat(sel)+ficha(sel):'<div class="pane chat"><div class="empty" style="margin:auto">'+brain(110,!lumiOn())+'<b>Selecione uma conversa</b><span>A Lumi mostra a análise e as sugestões de resposta assim que você abrir um cliente.</span></div></div><div class="pane crm"></div>')+'</div>';
@@ -925,6 +946,46 @@ function autoCard(on){
    '<div class="autog"><div class="crit">'+crit.map(([k,txt])=>'<div class="cr1"><span class="dot" style="background:'+ST[k].c+'"></span><b>'+ST[k].name+'</b><span>'+txt+'</span></div>').join('')+'</div>'+
    '<div class="rules"><b>Regras de segurança</b><ul><li>Só move quando há resposta do cliente na conversa e a confiança é de '+(ai.auto_min_conf||75)+'% ou mais.</li><li>Para marcar como Perdido, exige 88% e uma frase do cliente como prova.</li><li>Nunca marca Ganho sozinha e não mexe em negócios já encerrados.</li><li>Se um consultor mudou a etapa nas últimas 48 h, a Lumi respeita e só sugere.</li><li>Toda movimentação fica no histórico do lead, com o motivo e o trecho da conversa.</li></ul></div></div></section>';
 }
+function relView(){
+  const L=visible(),N=S.relDays||14,today=new Date();today.setHours(0,0,0,0);
+  const days=[];for(let k=N-1;k>=0;k--){const d=new Date(today);d.setDate(d.getDate()-k);days.push(d)}
+  const cnt={};L.forEach(l=>{const k=dayKey(l.created_at);cnt[k]=(cnt[k]||0)+1});
+  const vals=days.map(d=>cnt[dayKey(d)]||0),tk=dayKey(today),yd=new Date(today);yd.setDate(yd.getDate()-1);
+  const hoje=cnt[tk]||0,ontem=cnt[dayKey(yd)]||0,total=vals.reduce((a,b)=>a+b,0),media=total/N;
+  const delta=hoje-ontem,max=Math.max(1,...vals);
+  // gráfico de barras (SVG)
+  const NAR=innerWidth<720,W=NAR?380:900,Hc=NAR?200:220,pl=36,pr=8,pt=22,pb=28,iw=W-pl-pr,ih=Hc-pt-pb,bw=iw/N,gap=Math.min(10,bw*.28);
+  const nice=v=>{const p=Math.pow(10,Math.floor(Math.log10(v)));const m=v/p;return(m<=1?1:m<=2?2:m<=5?5:10)*p};
+  const top=nice(max*1.1),ticks=[0,top/2,top];
+  const y=v=>pt+ih-(v/top)*ih;
+  const bars=vals.map((v,i)=>{const x=pl+i*bw+gap/2,w=bw-gap,h=Math.max(v?2:0,(v/top)*ih),isT=i===N-1,d=days[i];
+    const lab=d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
+    return'<g class="bar'+(isT?' today':'')+'" data-tip="'+esc(lab+': '+v+' lead'+(v===1?'':'s'))+'"><rect class="hit" x="'+(pl+i*bw)+'" y="'+pt+'" width="'+bw+'" height="'+ih+'" fill="transparent"/>'+
+      (v?'<path d="M'+x+' '+(pt+ih)+'V'+(y(v)+Math.min(4,h))+'q0 -4 4 -4h'+(w-8)+'q4 0 4 4V'+(pt+ih)+'Z"/>':'')+
+      ((isT||(N<=14&&!NAR)||(NAR&&N<=7))&&v?'<text class="'+(isT?'vt':'vl')+'" x="'+(x+w/2)+'" y="'+(y(v)-6)+'" text-anchor="middle">'+v+'</text>':'')+
+      ((NAR?((N-1-i)%(N>7?(N>14?7:3):1)===0):(N<=14||i%3===0||isT))?'<text class="xl" x="'+(x+w/2)+'" y="'+(Hc-8)+'" text-anchor="middle">'+(isT?'Hoje':d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}))+'</text>':'')+'</g>'}).join('');
+  const grid=ticks.map(v=>'<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y(v)+'" y2="'+y(v)+'" class="gl"/><text class="yl" x="'+(pl-8)+'" y="'+(y(v)+4)+'" text-anchor="end">'+Math.round(v)+'</text>').join('');
+  const avgL='<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y(media)+'" y2="'+y(media)+'" class="avg"/><text class="avgt" x="'+(pl+6)+'" y="'+(y(media)-6)+'" text-anchor="start">média '+media.toFixed(1).replace('.',',')+'/dia</text>';
+  const chart='<svg class="rchart" viewBox="0 0 '+W+' '+Hc+'" role="img" aria-label="Leads por dia nos últimos '+N+' dias">'+grid+bars+avgL+'</svg>';
+  // por consultor / planilha
+  const lk7=new Date(today);lk7.setDate(lk7.getDate()-6);
+  const ag=S.agents.filter(a=>a.in_queue).map(a=>{const mine=L.filter(l=>l.owner_id===a.id);return{a,h:mine.filter(l=>dayKey(l.created_at)===tk).length,s:mine.filter(l=>new Date(l.created_at)>=lk7).length}}).sort((x,y)=>y.h-x.h||y.s-x.s);
+  const maxA=Math.max(1,...ag.map(x=>x.s));
+  const todayL=L.filter(l=>dayKey(l.created_at)===tk).sort((a,b)=>t(b.created_at)-t(a.created_at));
+  const tg={};todayL.forEach(l=>{const ks=(l.tags&&l.tags.length?l.tags:['Sem tag']);ks.forEach(k=>tg[k]=(tg[k]||0)+1)});
+  const k=(lab,val,sub,cls)=>'<div class="card kpi'+(cls?' '+cls:'')+'"><small>'+lab+'</small><b>'+val+'</b><span>'+sub+'</span></div>';
+  return'<div class="lumi rel">'+
+   '<div class="row" style="justify-content:space-between"><div class="seg">'+[[7,'7 dias'],[14,'14 dias'],[30,'30 dias']].map(([d,n])=>'<button data-act="reldays" data-v="'+d+'" class="'+(N===d?'on':'')+'">'+n+'</button>').join('')+'</div><span class="muted" style="font-size:12.5px">Use os filtros do topo para ver por consultor ou planilha.</span></div>'+
+   '<div class="kpis">'+k('Leads hoje','<span class="hero-n">'+hoje+'</span>',(delta===0?'igual a ontem':(delta>0?'▲ '+delta:'▼ '+Math.abs(delta))+' em relação a ontem'),'hl')+k('Ontem',ontem,dayLabel(yd))+k('Média por dia',media.toFixed(1).replace('.',','),'nos últimos '+N+' dias')+k('Total no período',total.toLocaleString('pt-BR'),'leads recebidos')+'</div>'+
+   '<div class="card"><div class="ch">'+ico('chart')+'<b>Leads por dia</b><span class="cr">últimos '+N+' dias</span></div><div class="chartw">'+chart+'<div class="ctip" id="ctip"></div></div></div>'+
+   '<div class="grid2"><div class="card"><div class="ch">'+ico('users')+'<b>Por consultor</b><span class="cr">hoje · 7 dias</span></div><div class="plist">'+
+     ag.map(x=>'<div class="arow">'+avatar(x.a.name,'sm')+'<b>'+esc(x.a.name)+(x.a.is_ai?' <span class="chip gold" style="font-size:10.5px">IA</span>':'')+'</b><div class="abar"><i style="width:'+(x.s/maxA*100)+'%"></i></div><span class="mono an">'+x.h+'</span><span class="mono as">'+x.s+'</span></div>').join('')+'</div></div>'+
+   '<div class="card"><div class="ch">'+ico('file')+'<b>Por planilha hoje</b><span class="cr">'+hoje+' leads</span></div><div class="plist">'+
+     (Object.entries(tg).sort((a,b)=>b[1]-a[1]).map(([g,n])=>'<div class="arow">'+(g==='Sem tag'?'<span class="chip">Sem tag</span>':tagChips({tags:[g]}))+'<span class="grow"></span><span class="mono an">'+n+'</span></div>').join('')||'<div class="empty"><span>Nenhum lead hoje ainda.</span></div>')+'</div></div></div>'+
+   '<div class="card"><div class="ch">'+ico('chat')+'<b>Leads de hoje</b><span class="cr">'+todayL.length+'</span></div><div class="plist tday">'+
+     (todayL.map(l=>'<button class="prio-item" data-act="open" data-id="'+l.id+'">'+avatar(l.name||l.phone)+'<div style="min-width:0"><div class="row" style="gap:6px"><b style="font-size:13.5px">'+esc(l.name||phone(l.phone))+'</b><span class="chip"><span class="dot" style="background:'+ST[l.stage].c+'"></span>'+ST[l.stage].name+'</span>'+tagChips(l)+(isAdmin()?'<span class="chip">'+esc(agentName(l.owner_id))+'</span>':'')+'</div><p>'+esc([l.event_type,l.guests?l.guests+' convidados':''].filter(Boolean).join(' · ')||phone(l.phone))+'</p></div><span class="mono muted" style="font-size:12px">'+fTime(l.created_at)+'</span></button>').join('')||'<div class="empty"><span>Nenhum lead hoje ainda.</span></div>')+'</div></div>'+
+   '</div>';
+}
 function equipe(){
   const q=S.agents.filter(a=>a.in_queue).sort((a,b)=>a.queue_position-b.queue_position);
   return'<div class="pad" style="display:grid;gap:16px;max-width:1100px;margin:0 auto"><p style="margin:0;color:var(--muted)">Cada lead novo vai para a próxima pessoa <b>online</b> da fila, em ordem. Quem está ocupado, ausente ou offline é pulado. Cliente que volta continua com a mesma pessoa.</p>'+
@@ -968,6 +1029,7 @@ document.addEventListener('click',async e=>{
   else if(a==='status'){const {error}=await sb.rpc('crm_set_status',{p_status:v});if(error)toast(error.message,true);else{S.me.status=v;render()}}
   else if(a==='prio'){const l=L();const {error}=await sb.from('crm_leads').update({priority:!l.priority}).eq('id',l.id);if(error)toast(error.message,true)}
   else if(a==='lumi'){if(S.sel)askLumi(S.sel)}
+  else if(a==='reldays'){S.relDays=+v;render()}
   else if(a==='speed'){const n=S.mnodes[id];const au=n&&n.querySelector('audio');if(au){const r={1:1.5,1.5:2,2:1}[au.playbackRate]||1;au.playbackRate=r;S.rate=r;el.textContent=String(r).replace('.',',')+'x'}}
   else if(a==='autostage'){const on=!(S.ai&&S.ai.auto_stage!==false);const {error}=await sb.rpc('crm_ai_set_auto',{p_on:on});if(error)toast(error.message,true);else{S.ai={...(S.ai||{}),auto_stage:on};toast(on?'A Lumi vai organizar o funil automaticamente.':'Organização automática desligada: a Lumi só vai sugerir.');render()}}
   else if(a==='attach'){if(!canSend(L())){toast('A janela de 24 h está fechada: envie o modelo de boas-vindas primeiro.',true);return}$('#filepick').click()}
@@ -1024,6 +1086,8 @@ const isFileDrag=e=>e.dataTransfer&&[...e.dataTransfer.types].includes('Files');
 document.addEventListener('dragover',e=>{if(!isFileDrag(e))return;const c=e.target.closest&&e.target.closest('.pane.chat');if(c&&S.sel){e.preventDefault();c.classList.add('drop')}});
 document.addEventListener('dragleave',e=>{const c=e.target.closest&&e.target.closest('.pane.chat');if(c&&!c.contains(e.relatedTarget))c.classList.remove('drop')});
 document.addEventListener('drop',e=>{if(!isFileDrag(e))return;const c=e.target.closest&&e.target.closest('.pane.chat');e.preventDefault();if(c){c.classList.remove('drop');const l=S.leads.find(x=>x.id===S.sel);if(l&&!canSend(l)){toast('A janela de 24 h está fechada: envie o modelo de boas-vindas primeiro.',true);return}addFiles(e.dataTransfer.files)}});
+document.addEventListener('mousemove',e=>{const tip=document.getElementById('ctip');if(!tip)return;const g=e.target.closest&&e.target.closest('.rchart .bar');if(!g){tip.style.opacity=0;return}
+  const w=tip.parentElement.getBoundingClientRect();tip.textContent=g.dataset.tip;tip.style.opacity=1;tip.style.left=Math.min(w.width-150,Math.max(0,e.clientX-w.left+12))+'px';tip.style.top=(e.clientY-w.top-34)+'px'});
 document.addEventListener('dragstart',e=>{const c=e.target.closest&&e.target.closest('.kc');if(c){S.drag=c.dataset.lead;try{e.dataTransfer.setData('text/plain',S.drag)}catch(x){}}});
 document.addEventListener('dragover',e=>{const c=e.target.closest&&e.target.closest('.col');if(c&&S.drag){e.preventDefault();document.querySelectorAll('.col.over').forEach(x=>x!==c&&x.classList.remove('over'));c.classList.add('over')}});
 document.addEventListener('drop',async e=>{const c=e.target.closest&&e.target.closest('.col');if(!c||!S.drag)return;e.preventDefault();const id=S.drag;S.drag=null;c.classList.remove('over');await moveStage(id,c.dataset.stage);render()});
