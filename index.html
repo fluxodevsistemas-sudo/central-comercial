@@ -390,6 +390,13 @@ tr:last-child td{border-bottom:0}
 @media (max-width:1100px){.autog{grid-template-columns:1fr}.crit{border-right:0;border-bottom:1px solid var(--line)}}
 @media (max-width:720px){.crit{grid-template-columns:1fr}}
 
+
+.day{position:sticky;top:6px;z-index:2}
+.mwrap{display:flex;align-items:center;gap:6px}
+.speed{border:1px solid var(--line);background:var(--surface);border-radius:20px;font-size:11px;font-weight:600;font-family:var(--mono);padding:3px 8px;cursor:pointer;color:var(--ink-2)}
+.speed:hover{border-color:var(--line-strong)}
+.mslot.aud{min-width:280px}
+
 /* ---------- responsivo ---------- */
 @media (max-width:1440px){.inbox{grid-template-columns:310px minmax(0,1fr) 340px}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media (max-width:1320px){.kpis{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}.grid2{grid-template-columns:1fr}.grid2>.card{height:auto;max-height:520px}}
@@ -474,7 +481,7 @@ const CLOSED=['ganho','perdido'];
 const TOUCH=window.matchMedia&&matchMedia('(pointer:coarse)').matches;
 const TEMPC={quente:'#E07A1F',morno:'#E0A82B',frio:'#5B88B8'};
 const RISKC={alto:'var(--crit)',medio:'var(--warn)',baixo:'var(--good)'};
-const S={session:null,me:null,agents:[],leads:[],ins:{},act:[],ai:null,msgs:[],hist:[],sel:null,view:'inbox',filter:'abertas',q:'',owner:'all',tag:'all',draft:'',mode:'out',modal:null,showCrm:false,loading:true,err:'',chans:[],msgChan:null,drag:null,busy:{},files:[],rec:null,urls:{}};
+const S={session:null,me:null,agents:[],leads:[],ins:{},act:[],ai:null,msgs:[],hist:[],sel:null,view:'inbox',filter:'abertas',q:'',owner:'all',tag:'all',draft:'',mode:'out',modal:null,showCrm:false,loading:true,err:'',chans:[],msgChan:null,drag:null,busy:{},files:[],rec:null,urls:{},mnodes:{},mfail:{},mload:{},chan:null,rate:1};
 
 /* ---------- icons ---------- */
 const IC={
@@ -558,6 +565,7 @@ const H=3600e3;
 function t(ts){return ts?new Date(ts).getTime():0}
 function fTime(ts){if(!ts)return'';const d=new Date(ts),n=new Date();if(d.toDateString()===n.toDateString())return pad(d.getHours())+':'+pad(d.getMinutes());return pad(d.getDate())+'/'+pad(d.getMonth()+1)}
 function fDT(ts){if(!ts)return'—';const d=new Date(ts);return pad(d.getDate())+'/'+pad(d.getMonth()+1)+' '+pad(d.getHours())+':'+pad(d.getMinutes())}
+function dayLabel(ts){const d=new Date(ts),n=new Date(),y=new Date(Date.now()-864e5);if(d.toDateString()===n.toDateString())return'Hoje';if(d.toDateString()===y.toDateString())return'Ontem';const w=d.toLocaleDateString('pt-BR',{weekday:'long'});const s=d.toLocaleDateString('pt-BR',{day:'numeric',month:'long'})+(d.getFullYear()!==n.getFullYear()?' de '+d.getFullYear():'');return w.charAt(0).toUpperCase()+w.slice(1)+', '+s}
 function fD(ts){if(!ts)return'';const d=new Date(ts);return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()}
 function rel(ts){if(!ts)return'—';const d=Date.now()-t(ts);if(d<6e4)return'agora';if(d<H)return Math.floor(d/6e4)+' min';if(d<24*H)return Math.floor(d/H)+' h';return Math.floor(d/24/H)+' d'}
 function phone(p){const d=String(p||'').replace(/\D/g,'');if(d.startsWith('55')&&d.length>=12){const a=d.slice(2,4),r=d.slice(4);return'+55 ('+a+') '+(r.length===9?r.slice(0,5)+'-'+r.slice(5):r.slice(0,4)+'-'+r.slice(4))}return d?'+'+d:''}
@@ -569,6 +577,7 @@ function agentName(id){const a=S.agents.find(x=>x.id===id);return a?a.name:'Sem 
 const isAdmin=()=>S.me&&S.me.role==='admin';
 const windowOpen=l=>l&&l.last_in_at&&Date.now()-t(l.last_in_at)<24*H;
 const waiting=l=>t(l.last_in_at)>t(l.last_out_at)&&!CLOSED.includes(l.stage);
+const canSend=l=>!!l&&((S.chan&&S.chan.ok&&S.chan.provider!=='meta')||windowOpen(l));
 const lumiOn=()=>S.ai&&S.ai.last_scan_at&&Date.now()-t(S.ai.last_scan_at)<15*6e4;
 
 /* ---------- data ---------- */
@@ -600,7 +609,7 @@ function subscribe(){
 }
 function notify(l){try{if(document.hidden&&'Notification' in window&&Notification.permission==='granted')new Notification('Central Comercial',{body:(l.name||phone(l.phone))+': '+(l.last_msg||'nova mensagem')})}catch(e){}}
 async function openLead(id){
-  if(S.rec)stopRec(false);S.files.forEach(f=>f.url&&URL.revokeObjectURL(f.url));S.files=[];S.sel=id;S.view='inbox';S.showCrm=false;S.draft='';S.mode='out';S.msgs=[];S.hist=[];render();
+  if(S.rec)stopRec(false);S.files.forEach(f=>f.url&&URL.revokeObjectURL(f.url));S.files=[];Object.values(S.mnodes).forEach(n=>{try{n.querySelector('audio,video')?.pause()}catch(e){}});S.mnodes={};S.mfail={};S.chan=null;S.sel=id;S.view='inbox';S.showCrm=false;S.draft='';S.mode='out';S.msgs=[];S.hist=[];render();
   if(S.msgChan){sb.removeChannel(S.msgChan);S.msgChan=null}
   const [{data:m},{data:a},{data:h}]=await Promise.all([
     sb.from('crm_messages').select('*').eq('lead_id',id).order('created_at').limit(1000),
@@ -611,6 +620,7 @@ async function openLead(id){
   S.msgChan=sb.channel('msgs-'+id).on('postgres_changes',{event:'*',schema:'public',table:'crm_messages',filter:'lead_id=eq.'+id},p=>{
     const i=S.msgs.findIndex(x=>x.id===p.new.id);if(i>=0)S.msgs[i]=p.new;else S.msgs.push(p.new);S.scroll=true;schedule()}).subscribe();
   S.scroll=true;render();
+  sb.functions.invoke('crm-wa',{body:{action:'channel',lead_id:id}}).then(({data})=>{if(S.sel===id){S.chan=data&&data.ok?data:null;render()}}).catch(()=>{});
   const l=S.leads.find(x=>x.id===id);if(l&&l.unread&&l.owner_id===S.me.id)sb.rpc('crm_mark_read',{p_lead:id});
 }
 async function askLumi(id){
@@ -623,7 +633,7 @@ async function askLumi(id){
 }
 
 /* ---------- anexos e áudio ---------- */
-const MEDIA_T=['image','video','audio','document','sticker','link'];
+const MEDIA_T=['image','video','audio','document','sticker','link','ptt','voice'];
 const MBy=1048576;
 function fsize(n){if(n==null)return'';if(n<1024)return n+' B';if(n<MBy)return Math.round(n/1024)+' KB';return(n/MBy).toFixed(n<10*MBy?1:0).replace('.',',')+' MB'}
 function kindFor(mime,size){mime=(mime||'').split(';')[0].toLowerCase();
@@ -661,7 +671,7 @@ async function sendFiles(l){
       const safe=(f.name||'arquivo').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w.\-]+/g,'_').slice(-80);
       const path=l.id+'/out/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'-'+safe;
       const {error:ue}=await sb.storage.from('crm-media').upload(path,f.file,{contentType:f.mime,upsert:false});if(ue)throw new Error(ue.message);
-      const {data,error}=await sb.functions.invoke('crm-send',{body:{lead_id:l.id,media:{path,name:f.name,mime:f.mime,size:f.size},caption}});
+      const {data,error}=S.chan&&S.chan.ok?await sb.functions.invoke('crm-wa',{body:{action:'send',lead_id:l.id,media:{path,name:f.name,mime:f.mime,size:f.size},caption}}):await sb.functions.invoke('crm-send',{body:{lead_id:l.id,media:{path,name:f.name,mime:f.mime,size:f.size},caption}});
       if(error||data?.error){let msg=data?.error;try{msg=msg||(await error.context.json()).error}catch(x){}throw new Error(msg||'Não foi possível enviar.')}
       f0.st='ok';caption='';
     }catch(e){f0.st='err';fails++;toast(f0.name+': '+e.message,true)}
@@ -672,13 +682,20 @@ async function sendFiles(l){
 }
 function signedUrl(path){const c=S.urls[path];if(c&&c.exp>Date.now())return c.url;if(c&&c.loading)return null;
   S.urls[path]={loading:true,exp:0};sb.storage.from('crm-media').createSignedUrl(path,3600).then(({data})=>{S.urls[path]={url:data&&data.signedUrl,exp:Date.now()+3500e3};schedule()});return null}
+function loadWaMedia(m){if(S.mload[m.id]||S.mfail[m.id])return;const busy=Object.keys(S.mload).length;if(busy>=3){setTimeout(schedule,800);return}
+  S.mload[m.id]=1;sb.functions.invoke('crm-wa',{body:{action:'media',message_id:m.id}}).then(async({data,error})=>{delete S.mload[m.id];
+    if(data&&data.path){m.media_path=data.path;S.urls[data.path]={url:data.url,exp:Date.now()+3500e3};const r=S.msgs.find(x=>x.id===m.id);if(r)r.media_path=data.path}
+    else{let msg=data&&data.error;try{msg=msg||(await error.context.json()).error}catch(x){}S.mfail[m.id]=msg||'Arquivo indisponível'}schedule()}).catch(()=>{delete S.mload[m.id];S.mfail[m.id]='Arquivo indisponível';schedule()})}
+const MLAB={audio:'Áudio',ptt:'Áudio',voice:'Áudio',image:'Foto',video:'Vídeo',document:'Documento',sticker:'Figurinha'};
 function mediaHtml(m){
+  if(!m.media_path&&m.wamid&&String(m.wamid).startsWith('zapi:')&&MEDIA_T.includes(m.msg_type)&&m.msg_type!=='link'){
+    if(S.mfail[m.id]||m.error==='Arquivo expirado no WhatsApp')return'<div class="mph">'+ico('alert','sm')+(MLAB[m.msg_type]||'Arquivo')+' · '+esc(S.mfail[m.id]||'não está mais disponível no WhatsApp')+'</div>';
+    loadWaMedia(m);return'<div class="mph"><span class="spin"></span>Carregando '+(MLAB[m.msg_type]||'arquivo').toLowerCase()+'…</div>'}
   if(!m.media_path){return MEDIA_T.includes(m.msg_type)&&m.msg_type!=='link'?'<div class="mph">'+ico(m.msg_type==='audio'?'mic':'file','sm')+({image:'Foto',video:'Vídeo',audio:'Áudio',document:'Documento',sticker:'Figurinha'}[m.msg_type]||'Arquivo')+(m.direction==='in'?' · disponível quando o token da Meta estiver configurado':'')+'</div>':''}
   const u=signedUrl(m.media_path),mime=(m.mime||'').toLowerCase(),name=esc(m.file_name||'arquivo');
   if(!u)return'<div class="mph"><span class="spin"></span>Carregando '+name+'</div>';
   if(mime.startsWith('image/'))return'<a href="'+u+'" target="_blank" rel="noopener" class="mimg"><img src="'+u+'" alt="'+name+'" loading="lazy"></a>';
-  if(mime.startsWith('video/'))return'<video class="mvid" src="'+u+'" controls preload="metadata"></video>';
-  if(mime.startsWith('audio/'))return'<audio class="maud" src="'+u+'" controls preload="metadata"></audio>';
+  if(mime.startsWith('video/')||mime.startsWith('audio/'))return'<div class="mslot'+(mime.startsWith('audio/')?' aud':'')+'" data-mslot="'+m.id+'" data-src="'+esc(u)+'" data-kind="'+(mime.startsWith('audio/')?'audio':'video')+'"></div>';
   return'<a class="mfile" href="'+u+'" target="_blank" rel="noopener" download="'+name+'"><span class="mfi">'+ico('file')+'<i>'+esc((m.file_name||'').split('.').pop().slice(0,4).toUpperCase())+'</i></span><span class="mfn"><b>'+name+'</b><small>'+fsize(m.file_size)+(m.msg_type==='link'?' · enviado como link':'')+'</small></span>'+ico('dl','sm')+'</a>';
 }
 function recHtml(){const s=Math.floor((Date.now()-S.rec.t0)/1000);
@@ -704,6 +721,12 @@ function render(){
   $('#app').innerHTML=shell();
   document.querySelectorAll('[data-keep]').forEach(e=>{if(keep[e.dataset.keep]!=null)e.scrollTop=keep[e.dataset.keep]});
   if(id){const e=document.getElementById(id);if(e){if(val!=null)e.value=val;e.focus();try{e.setSelectionRange(ss,se)}catch(x){}}}
+  document.querySelectorAll('[data-mslot]').forEach(slot=>{const id=slot.dataset.mslot,src=slot.dataset.src,k=slot.dataset.kind;let n=S.mnodes[id];
+    if(!n){n=document.createElement('div');n.className='mwrap';
+      if(k==='audio'){n.innerHTML='<audio class="maud" controls preload="metadata"></audio><button class="speed" data-act="speed" data-id="'+id+'" title="Velocidade">1x</button>';n.querySelector('audio').src=src;n.querySelector('audio').playbackRate=S.rate}
+      else{n.innerHTML='<video class="mvid" controls preload="metadata"></video>';n.querySelector('video').src=src}
+      S.mnodes[id]=n}
+    slot.appendChild(n)});
   const m=document.querySelector('.msgs');if(m&&S.scroll){m.scrollTop=m.scrollHeight;S.scroll=false}
   $('#modal').innerHTML=S.modal?modal():'';
 }
@@ -768,18 +791,20 @@ function lumiStrip(l){
   return'<div class="lstrip"><div class="lh">'+brain(34,!busy&&!lumiOn())+'<b>Lumi sugere</b><span class="ns" title="'+esc(i.next_step)+'">'+esc(i.next_step||'')+'</span><button class="btn sm ghost" data-act="lumi" title="Analisar de novo" '+(busy?'disabled':'')+'>'+(busy?'<span class="spin"></span>':ico('refresh','sm'))+'</button></div>'+(sug?'<div class="sugs">'+sug+'</div>':'')+'</div>';
 }
 function chat(l){
-  let last='';const body=S.msgs.map(m=>{let h='';const d=fD(m.created_at);if(d!==last){last=d;h+='<div class="day">'+d+'</div>'}
+  let last='';const body=S.msgs.map(m=>{let h='';const d=fD(m.created_at);if(d!==last){last=d;h+='<div class="day">'+dayLabel(m.created_at)+'</div>'}
     const cls=m.direction==='in'?'in':m.direction==='note'?'note':'out';
-    h+='<div class="bub '+cls+(m.status==='failed'?' fail':'')+(m.media_path||MEDIA_T.includes(m.msg_type)?' media':'')+'">'+(m.direction==='note'?'<div style="font-size:11px;font-weight:600;color:var(--warn)">Nota interna · '+esc(agentName(m.sent_by))+'</div>':'')+mediaHtml(m)+(m.body?'<div class="btx">'+esc(m.body)+'</div>':((m.media_path||MEDIA_T.includes(m.msg_type))?'':esc('['+m.msg_type+']')))+
-      '<div class="meta">'+(m.source==='zapi'?'<span title="Mensagem do WhatsApp do consultor">WhatsApp do consultor</span> · ':'')+(m.direction==='out'&&isAdmin()&&m.sent_by?esc(agentName(m.sent_by))+' · ':'')+fTime(m.created_at)+(m.direction==='out'?' · '+({sent:'enviada',delivered:'entregue',read:'lida',failed:'falhou'}[m.status]||''):'')+'</div>'+(m.error?'<div style="color:var(--crit);font-size:11.5px">'+esc(m.error)+'</div>':'')+'</div>';return h}).join('');
-  const open=windowOpen(l);const left=open?24*H-(Date.now()-t(l.last_in_at)):0;
+    h+='<div class="bub '+cls+(m.status==='failed'?' fail':'')+(m.media_path||MEDIA_T.includes(m.msg_type)?' media':'')+'">'+(m.direction==='note'?'<div style="font-size:11px;font-weight:600;color:var(--warn)">Nota interna · '+esc(agentName(m.sent_by))+'</div>':'')+mediaHtml(m)+(m.body&&!(MEDIA_T.includes(m.msg_type)&&/^\[[^\]]{2,20}\]$/.test(m.body.trim()))?'<div class="btx">'+esc(m.body)+'</div>':((m.media_path||MEDIA_T.includes(m.msg_type))?'':esc('['+m.msg_type+']')))+
+      '<div class="meta">'+(m.source==='zapi'?'<span title="Mensagem do WhatsApp do consultor">WhatsApp do consultor</span> · ':'')+(m.direction==='out'&&isAdmin()&&m.sent_by?esc(agentName(m.sent_by))+' · ':'')+fDT(m.created_at)+(m.direction==='out'?' · '+({sent:'enviada',delivered:'entregue',read:'lida',failed:'falhou'}[m.status]||''):'')+'</div>'+(m.error?'<div style="color:var(--crit);font-size:11.5px">'+esc(m.error)+'</div>':'')+'</div>';return h}).join('');
+  const viaWa=S.chan&&S.chan.ok,metaCh=viaWa&&S.chan.provider==='meta';
+  const open=canSend(l);const left=windowOpen(l)?24*H-(Date.now()-t(l.last_in_at)):0;
   const mine=isAdmin()||l.owner_id===S.me.id;
   return'<div class="pane chat"><div class="chead"><button class="btn sm back" data-act="back" aria-label="Voltar">'+ico('back','sm')+'</button>'+avatar(l.name||l.phone)+'<div class="who"><b>'+esc(l.name||'Cliente sem nome')+'</b><span>'+phone(l.phone)+'</span></div>'+
    '<select class="inp sm" id="stagesel" data-change="stage" style="width:auto" aria-label="Etapa do funil">'+STAGES.map(s=>'<option value="'+s[0]+'"'+(l.stage===s[0]?' selected':'')+'>'+s[1]+'</option>').join('')+'</select><button class="btn sm fichabtn" data-act="togglecrm">'+ico('panel','sm')+'<span class="t">Ficha</span></button></div>'+
    '<div class="msgs" data-keep="msgs">'+(body||'<div class="empty" style="margin:auto"><b>Sem mensagens ainda</b><span>Quando o número de vendas estiver conectado, a conversa aparece aqui.</span></div>')+'</div>'+
    (mine?'<div class="composer">'+(S.mode==='out'&&!S.files.length&&!S.rec?lumiStrip(l):'')+'<div class="bar"><div class="seg">'+[['out','Responder'],['note','Nota interna']].map(([k,n])=>'<button data-act="mode" data-v="'+k+'" class="'+(S.mode===k?'on':'')+'">'+n+'</button>').join('')+'</div>'+
-   '<span class="winfo" style="color:'+(open?'var(--good)':'var(--warn)')+'">'+ico('clock','sm')+(open?'Janela de 24 h aberta · '+Math.floor(left/H)+' h '+Math.floor(left%H/6e4)+' min':'Janela de 24 h fechada · só modelo aprovado')+'</span></div>'+
-   (S.mode==='out'&&!open?'<div class="bar"><button class="btn pri" data-act="template">'+ico('send','sm')+'Enviar modelo de boas-vindas</button><span style="font-size:12px;color:var(--muted)">Quando o cliente responder, a janela abre e você conversa normalmente.</span></div>':
+   '<span class="winfo" style="color:'+(open?'var(--good)':'var(--warn)')+'">'+(viaWa&&!metaCh?ico('chat','sm')+'Enviando pelo WhatsApp de '+esc(S.chan.consultor):ico('clock','sm')+(viaWa?'WhatsApp de '+esc(S.chan.consultor)+' · ':'')+(open?'Janela de 24 h aberta · '+Math.floor(left/H)+' h '+Math.floor(left%H/6e4)+' min':'Janela de 24 h fechada'+(viaWa?' · aguarde o cliente responder':' · só modelo aprovado')))+'</span></div>'+
+   (S.mode==='out'&&!open&&metaCh?'<div class="bar"><span style="font-size:12.5px;color:var(--muted)">Este cliente fala com o número oficial de '+esc(S.chan.consultor)+'. Fora da janela de 24 h, só é possível responder quando ele mandar mensagem.</span></div>':
+   S.mode==='out'&&!open?'<div class="bar"><button class="btn pri" data-act="template">'+ico('send','sm')+'Enviar modelo de boas-vindas</button><span style="font-size:12px;color:var(--muted)">Quando o cliente responder, a janela abre e você conversa normalmente.</span></div>':
    (S.mode==='out'&&S.files.length?trayHtml():'')+
    (S.rec?recHtml():'<textarea class="inp" id="composer" rows="2" placeholder="'+(S.mode==='out'?(S.files.length?'Legenda (opcional) para o primeiro arquivo':'Escreva a mensagem, arraste arquivos aqui ou clique numa sugestão da Lumi (Ctrl+Enter envia)'):'Nota interna, só a equipe vê')+'" data-input="draft">'+esc(S.draft)+'</textarea>')+
    '<div class="bar">'+(S.mode==='out'&&!S.rec?'<button class="btn icon" data-act="attach" title="Anexar arquivos (fotos, vídeos, áudios, PDF, qualquer tipo)" aria-label="Anexar arquivos">'+ico('clip')+'</button><button class="btn icon" data-act="rec" title="Gravar áudio" aria-label="Gravar áudio">'+ico('mic')+'</button>':'')+'<span class="grow"></span>'+
@@ -928,10 +953,11 @@ document.addEventListener('click',async e=>{
   else if(a==='status'){const {error}=await sb.rpc('crm_set_status',{p_status:v});if(error)toast(error.message,true);else{S.me.status=v;render()}}
   else if(a==='prio'){const l=L();const {error}=await sb.from('crm_leads').update({priority:!l.priority}).eq('id',l.id);if(error)toast(error.message,true)}
   else if(a==='lumi'){if(S.sel)askLumi(S.sel)}
+  else if(a==='speed'){const n=S.mnodes[id];const au=n&&n.querySelector('audio');if(au){const r={1:1.5,1.5:2,2:1}[au.playbackRate]||1;au.playbackRate=r;S.rate=r;el.textContent=String(r).replace('.',',')+'x'}}
   else if(a==='autostage'){const on=!(S.ai&&S.ai.auto_stage!==false);const {error}=await sb.rpc('crm_ai_set_auto',{p_on:on});if(error)toast(error.message,true);else{S.ai={...(S.ai||{}),auto_stage:on};toast(on?'A Lumi vai organizar o funil automaticamente.':'Organização automática desligada: a Lumi só vai sugerir.');render()}}
-  else if(a==='attach'){if(!windowOpen(L())){toast('A janela de 24 h está fechada: envie o modelo de boas-vindas primeiro.',true);return}$('#filepick').click()}
+  else if(a==='attach'){if(!canSend(L())){toast('A janela de 24 h está fechada: envie o modelo de boas-vindas primeiro.',true);return}$('#filepick').click()}
   else if(a==='rmfile'){const f=S.files.find(x=>x.id==v);if(f&&f.url)URL.revokeObjectURL(f.url);S.files=S.files.filter(x=>x.id!=v);render()}
-  else if(a==='rec'){if(!windowOpen(L())){toast('A janela de 24 h está fechada: envie o modelo de boas-vindas primeiro.',true);return}startRec()}
+  else if(a==='rec'){if(!canSend(L())){toast('A janela de 24 h está fechada: envie o modelo de boas-vindas primeiro.',true);return}startRec()}
   else if(a==='reccancel')stopRec(false);
   else if(a==='recsend')stopRec(true);
   else if(a==='kmore'){S.kmore[v]=(S.kmore[v]||40)+40;render()}
@@ -947,7 +973,7 @@ document.addEventListener('click',async e=>{
     const text=S.draft.trim();if(!l||!text||S.sending)return;
     if(S.mode==='note'){const {error}=await sb.rpc('crm_add_note',{p_lead:l.id,p_body:text});if(error)return toast(error.message,true);S.draft='';render();return}
     S.sending=true;render();
-    const {data,error}=await sb.functions.invoke('crm-send',{body:{lead_id:l.id,text}});
+    const {data,error}=S.chan&&S.chan.ok?await sb.functions.invoke('crm-wa',{body:{action:'send',lead_id:l.id,text}}):await sb.functions.invoke('crm-send',{body:{lead_id:l.id,text}});
     S.sending=false;
     if(error||data?.error){let msg=data?.error;try{msg=msg||(await error.context.json()).error}catch(x){}toast(msg||'Não foi possível enviar.',true)}else S.draft='';
     render();
@@ -982,7 +1008,7 @@ document.addEventListener('paste',e=>{if(!S.sel||S.mode!=='out')return;const fs=
 const isFileDrag=e=>e.dataTransfer&&[...e.dataTransfer.types].includes('Files');
 document.addEventListener('dragover',e=>{if(!isFileDrag(e))return;const c=e.target.closest&&e.target.closest('.pane.chat');if(c&&S.sel){e.preventDefault();c.classList.add('drop')}});
 document.addEventListener('dragleave',e=>{const c=e.target.closest&&e.target.closest('.pane.chat');if(c&&!c.contains(e.relatedTarget))c.classList.remove('drop')});
-document.addEventListener('drop',e=>{if(!isFileDrag(e))return;const c=e.target.closest&&e.target.closest('.pane.chat');e.preventDefault();if(c){c.classList.remove('drop');const l=S.leads.find(x=>x.id===S.sel);if(l&&!windowOpen(l)){toast('A janela de 24 h está fechada: envie o modelo de boas-vindas primeiro.',true);return}addFiles(e.dataTransfer.files)}});
+document.addEventListener('drop',e=>{if(!isFileDrag(e))return;const c=e.target.closest&&e.target.closest('.pane.chat');e.preventDefault();if(c){c.classList.remove('drop');const l=S.leads.find(x=>x.id===S.sel);if(l&&!canSend(l)){toast('A janela de 24 h está fechada: envie o modelo de boas-vindas primeiro.',true);return}addFiles(e.dataTransfer.files)}});
 document.addEventListener('dragstart',e=>{const c=e.target.closest&&e.target.closest('.kc');if(c){S.drag=c.dataset.lead;try{e.dataTransfer.setData('text/plain',S.drag)}catch(x){}}});
 document.addEventListener('dragover',e=>{const c=e.target.closest&&e.target.closest('.col');if(c&&S.drag){e.preventDefault();document.querySelectorAll('.col.over').forEach(x=>x!==c&&x.classList.remove('over'));c.classList.add('over')}});
 document.addEventListener('drop',async e=>{const c=e.target.closest&&e.target.closest('.col');if(!c||!S.drag)return;e.preventDefault();const id=S.drag;S.drag=null;c.classList.remove('over');await moveStage(id,c.dataset.stage);render()});
