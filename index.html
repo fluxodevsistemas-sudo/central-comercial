@@ -368,6 +368,28 @@ tr:last-child td{border-bottom:0}
 .mfn{flex:1;min-width:0;display:grid}.mfn b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mfn small{font-size:11px;color:var(--muted)}
 .mph{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:12.5px;color:var(--muted)}
 
+
+/* ---------- organização automática ---------- */
+.stx{border-radius:10px;padding:9px 11px;background:var(--surface);border:1px solid var(--line);display:grid;gap:5px}
+.stx.moved{border-color:var(--accent-line);background:var(--accent-soft)}
+.stx.suggested{border-color:var(--gold-line)}
+.sth{display:flex;align-items:center;gap:7px;font-size:12.5px}.sth b{flex:1}.sth .mono{font-size:11px;color:var(--muted)}.stx.moved .sth svg{color:var(--accent)}
+.stx p{margin:0;font-size:12.5px;color:var(--ink-2)}
+.stx q{display:block;font-size:12px;color:var(--muted);font-style:italic;border-left:2px solid var(--line-strong);padding-left:8px}
+.lmv{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--gold-soft);color:var(--gold-deep);flex:none}
+.ll.mv .t{color:#5FD3A0}.ll.mv .x{color:#BFEBD6}
+.autoc .ch .cr{margin-left:auto}
+.sw{width:42px;height:24px;border-radius:20px;border:0;background:var(--line-strong);position:relative;cursor:pointer;flex:none;transition:background .2s}
+.sw i{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.sw.on{background:var(--accent)}.sw.on i{transform:translateX(18px)}
+.autog{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:0}
+.crit{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border-right:1px solid var(--line)}
+.cr1{background:var(--surface);padding:12px 16px;display:grid;grid-template-columns:auto 1fr;gap:3px 8px;align-items:center}
+.cr1 b{font-size:13px}.cr1 span:last-child{grid-column:2;font-size:12.5px;color:var(--muted);line-height:1.4}
+.rules{padding:14px 18px}.rules b{font-size:13px}.rules ul{margin:8px 0 0;padding-left:18px;display:grid;gap:7px;font-size:12.5px;color:var(--ink-2);line-height:1.4}
+@media (max-width:1100px){.autog{grid-template-columns:1fr}.crit{border-right:0;border-bottom:1px solid var(--line)}}
+@media (max-width:720px){.crit{grid-template-columns:1fr}}
+
 /* ---------- responsivo ---------- */
 @media (max-width:1440px){.inbox{grid-template-columns:310px minmax(0,1fr) 340px}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media (max-width:1320px){.kpis{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}.grid2{grid-template-columns:1fr}.grid2>.card{height:auto;max-height:520px}}
@@ -768,14 +790,17 @@ function lumiCard(l){
   if(!i||!i.summary)return'<div class="lcard"><div class="lt">'+brain(52,!busy)+'<div><b>Análise da Lumi</b><small>'+(busy?'Analisando…':'Peça uma análise para ver temperatura, objeções e próximo passo.')+'</small></div></div><button class="btn gold sm" data-act="lumi" '+(busy?'disabled':'')+'>'+(busy?'<span class="spin"></span>':ico('spark','sm'))+'Analisar agora</button></div>';
   const ex=i.extracted||{};const exList=[['tipo_evento','event_type','Tipo de evento'],['data_evento','event_date','Data do evento'],['convidados','guests','Convidados'],['orcamento','budget','Orçamento']].filter(([k,f])=>ex[k]!=null&&ex[k]!==''&&(l[f]==null||l[f]===''));
   const tc=TEMPC[i.temperature]||'var(--gold)';
+  const sugSt=i.stage_to||ex.etapa_sugerida;
+  const stBlock=i.stage_to&&ST[i.stage_to]?'<div class="stx '+(i.stage_action||'')+'"><div class="sth">'+ico(i.stage_action==='moved'?'check':'kanban','sm')+'<b>'+(i.stage_action==='moved'?'Lumi moveu para '+ST[i.stage_to].name:i.stage_action==='suggested'&&i.stage_to!==l.stage?'Lumi sugere '+ST[i.stage_to].name:'Etapa confirmada pela Lumi')+'</b><span class="mono">'+(i.stage_conf??'')+'%</span></div>'+
+    (i.stage_reason?'<p>'+esc(i.stage_reason)+'</p>':'')+(i.stage_evidence?'<q>'+esc(i.stage_evidence)+'</q>':'')+'</div>':'';
   return'<div class="lcard"><div class="lt"><div class="gauge" style="--v:'+(i.score||0)+';--c:'+tc+'"><span>'+(i.score||0)+'</span></div><div style="flex:1;min-width:0"><b>Lead '+esc(i.temperature||'')+'</b><small>'+esc(i.intent||'')+'</small></div>'+brain(44)+'</div>'+
    '<div class="lrow"><label>Resumo</label><p>'+esc(i.summary)+'</p></div>'+
-   '<div class="next">'+ico('target','sm')+'<div><b style="font-size:12px">Próximo passo</b><div>'+esc(i.next_step||'')+'</div></div></div>'+
+   stBlock+'<div class="next">'+ico('target','sm')+'<div><b style="font-size:12px">Próximo passo</b><div>'+esc(i.next_step||'')+'</div></div></div>'+
    ((i.objections||[]).length?'<div class="lrow"><label>Objeções</label><div class="row" style="gap:5px">'+i.objections.map(o=>'<span class="chip warn">'+esc(o)+'</span>').join('')+'</div></div>':'')+
    '<div class="lrow"><label>Risco de perda · '+esc(i.risk_level||'')+'</label><div class="riskbar"><i style="width:'+({alto:90,medio:55,baixo:20}[i.risk_level]||10)+'%;background:'+(RISKC[i.risk_level]||'var(--good)')+'"></i></div><p class="muted" style="font-size:12.5px">'+esc(i.risk||'')+'</p></div>'+
    ((i.alerts||[]).length?'<div class="lrow"><label>Alertas</label><div class="alist">'+i.alerts.map(a=>'<div>'+ico('alert','sm')+'<span>'+esc(a)+'</span></div>').join('')+'</div></div>':'')+
    '<div class="lacts">'+(exList.length?'<button class="btn sm" data-act="applyex">'+ico('check','sm')+'Preencher ficha ('+exList.map(x=>x[2]).join(', ')+')</button>':'')+
-   (ex.etapa_sugerida&&ex.etapa_sugerida!==l.stage&&ST[ex.etapa_sugerida]?'<button class="btn sm" data-act="applystage" data-v="'+ex.etapa_sugerida+'">'+ico('arrow','sm')+'Mover para '+ST[ex.etapa_sugerida].name+'</button>':'')+
+   (sugSt&&sugSt!==l.stage&&ST[sugSt]?'<button class="btn sm" data-act="applystage" data-v="'+sugSt+'">'+ico('arrow','sm')+'Mover para '+ST[sugSt].name+'</button>':'')+
    '<button class="btn sm ghost" data-act="lumi" '+(busy?'disabled':'')+'>'+(busy?'<span class="spin"></span>':ico('refresh','sm'))+'Atualizar</button></div>'+
    '<small class="muted mono" style="font-size:10.5px">Analisado '+fDT(i.analyzed_at)+'</small></div>';
 }
@@ -802,7 +827,7 @@ function kcard(l){
   const i=S.ins[l.id];const sub=[l.event_type,l.guests?l.guests+' convidados':''].filter(Boolean).join(' · ')||phone(l.phone);
   const tags=(l.tags||[]).slice(0,1);
   return'<div class="kc'+(l.priority?' prio':'')+'" draggable="'+(!TOUCH)+'" data-lead="'+l.id+'" data-act="open" data-id="'+l.id+'">'+
-   '<div class="kt">'+avatar(l.name||l.phone,'sm')+'<div class="kn"><b>'+esc(l.name||phone(l.phone))+'</b><small>'+esc(sub)+'</small></div>'+(waiting(l)?'<span class="wdot" title="Cliente aguardando resposta"></span>':'')+tempBadge(l)+'</div>'+
+   '<div class="kt">'+avatar(l.name||l.phone,'sm')+'<div class="kn"><b>'+esc(l.name||phone(l.phone))+'</b><small>'+esc(sub)+'</small></div>'+(i&&i.stage_action==='moved'&&i.stage_to===l.stage?'<span class="lmv" title="'+esc('Movido pela Lumi: '+(i.stage_reason||''))+'">'+ico('spark','sm')+'</span>':'')+(waiting(l)?'<span class="wdot" title="Cliente aguardando resposta"></span>':'')+tempBadge(l)+'</div>'+
    (i&&i.next_step&&!CLOSED.includes(l.stage)?'<div class="tip" title="'+esc(i.next_step)+'">'+ico('bulb','sm')+'<span>'+esc(i.next_step)+'</span></div>':'')+
    '<div class="kf"><div class="tg">'+tagChips({tags})+'</div>'+
    (isAdmin()&&l.owner_id?'<span title="'+esc(agentName(l.owner_id))+'">'+avatar(agentName(l.owner_id),'xs')+'</span>':'')+
@@ -840,9 +865,9 @@ function lumiView(){
      (!on&&isAdmin()?'<p class="hint">Para ligar: no Supabase, em Edge Functions → Secrets, adicione ANTHROPIC_API_KEY.</p>':'')+
    '</div>'+
    '<div class="hud log"><div class="hh"><span>Registro ao vivo</span><span class="mono">'+logs.length+'</span></div><div class="logl">'+
-     (logs.map((a,k)=>'<a href="#" class="ll'+(a.kind==='alert'?' al':'')+(k===0?' new':'')+'" '+(a.lead_id?'data-act="open" data-id="'+a.lead_id+'"':'')+'><span class="mono t">'+fTime(a.created_at)+'</span><span class="x">'+esc(a.text)+'</span></a>').join('')||'<div class="ll"><span class="x">As análises aparecem aqui em tempo real.</span></div>')+
+     (logs.map((a,k)=>'<a href="#" class="ll'+(a.kind==='alert'?' al':a.kind==='move'?' mv':'')+(k===0?' new':'')+'" '+(a.lead_id?'data-act="open" data-id="'+a.lead_id+'"':'')+'><span class="mono t">'+fTime(a.created_at)+'</span><span class="x">'+esc(a.text)+'</span></a>').join('')||'<div class="ll"><span class="x">As análises aparecem aqui em tempo real.</span></div>')+
    '</div></div></section>'+
-   '<p class="lumi-desc">A Lumi lê as conversas de todos os consultores, identifica a intenção de cada cliente, aponta riscos de perda e escreve sugestões de resposta. Nada é enviado sem o consultor aprovar, e ela nunca inventa preço, data ou desconto.</p>'+
+   autoCard(on)+'<p class="lumi-desc">A Lumi lê as conversas de todos os consultores, identifica a intenção de cada cliente, aponta riscos de perda e escreve sugestões de resposta. Nada é enviado sem o consultor aprovar, e ela nunca inventa preço, data ou desconto.</p>'+
    '<div class="grid2 one"><div class="card"><div class="ch">'+ico('target')+'<b>Prioridades agora</b><span class="cr">'+pri.length+' leads</span></div><div class="plist">'+
    (pri.map(l=>{const i=S.ins[l.id]||{};return'<button class="prio-item" data-act="open" data-id="'+l.id+'">'+avatar(l.name||l.phone)+'<div style="min-width:0"><div class="row" style="gap:6px"><b style="font-size:13.5px">'+esc(l.name||phone(l.phone))+'</b>'+tempBadge(l)+(i.risk_level==='alto'?'<span class="chip crit">Risco alto</span>':'')+(waiting(l)?'<span class="chip warn">Aguardando</span>':'')+(isAdmin()?'<span class="chip">'+esc(agentName(l.owner_id))+'</span>':'')+'</div><p>'+esc(i.next_step||i.summary||'')+'</p></div>'+ico('arrow','sm')+'</button>'}).join('')||'<div class="empty"><b>Nada urgente</b><span>Quando eu encontrar leads quentes, em risco ou esperando resposta, eles aparecem aqui.</span></div>')+'</div></div>'+
    '</div>'+
@@ -850,6 +875,15 @@ function lumiView(){
    S.agents.filter(a=>a.in_queue).map(a=>{const mine=L.filter(l=>l.owner_id===a.id),mi=mine.filter(l=>S.ins[l.id]&&S.ins[l.id].summary);const av=mi.length?Math.round(mi.reduce((s,l)=>s+(S.ins[l.id].score||0),0)/mi.length)+'%':'—';
      return'<tr><td><div class="row">'+avatar(a.name)+'<b>'+esc(a.name)+'</b></div></td><td class="mono">'+mine.length.toLocaleString('pt-BR')+'</td><td class="mono">'+mine.filter(waiting).length+'</td><td class="mono">'+mi.filter(l=>S.ins[l.id].temperature==='quente').length+'</td><td class="mono">'+mi.filter(l=>S.ins[l.id].risk_level==='alto').length+'</td><td class="mono">'+av+'</td></tr>'}).join('')+'</tbody></table></div>':'')+
    '</div>';
+}
+function autoCard(on){
+  const ai=S.ai||{},auto=ai.auto_stage!==false;
+  const crit=[['primeiro','O cliente ainda não respondeu, ou só mandou um oi.'],['qualificacao','Já conversa, mas faltam 2 ou mais dados: tipo de evento, data, convidados, orçamento, unidade.'],['quente','Tem data e convidados definidos e pede valores, disponibilidade, visita ou degustação.'],['negociacao','A proposta já foi enviada e o cliente discute preço, parcelas, desconto ou contrato.'],['followup','Havia avanço e parou: 48 h sem resposta após o consultor, ou o cliente pediu para retornar depois.'],['frio','Respostas evasivas, "só pesquisando", data muito distante, orçamento incompatível ou sem resposta após 2 tentativas.'],['perdido','Recusa explícita: fechou com outro espaço, desistiu ou pediu para não ser contatado.'],['ganho','Contratação confirmada. A Lumi só sugere: quem marca a venda é o consultor, com o valor.']];
+  const moved=S.act.filter(a=>a.kind==='move'&&Date.now()-t(a.created_at)<24*H).length;
+  return'<section class="card autoc"><div class="ch">'+ico('kanban')+'<b>Organização automática do funil</b><span class="cr">'+moved+' movimentações nas últimas 24 h</span>'+
+   (isAdmin()?'<button class="sw'+(auto?' on':'')+'" data-act="autostage" role="switch" aria-checked="'+auto+'" title="Ligar ou desligar"><i></i></button>':'<span class="chip '+(auto?'accent':'')+'">'+(auto?'Ligada':'Desligada')+'</span>')+'</div>'+
+   '<div class="autog"><div class="crit">'+crit.map(([k,txt])=>'<div class="cr1"><span class="dot" style="background:'+ST[k].c+'"></span><b>'+ST[k].name+'</b><span>'+txt+'</span></div>').join('')+'</div>'+
+   '<div class="rules"><b>Regras de segurança</b><ul><li>Só move quando há resposta do cliente na conversa e a confiança é de '+(ai.auto_min_conf||75)+'% ou mais.</li><li>Para marcar como Perdido, exige 88% e uma frase do cliente como prova.</li><li>Nunca marca Ganho sozinha e não mexe em negócios já encerrados.</li><li>Se um consultor mudou a etapa nas últimas 48 h, a Lumi respeita e só sugere.</li><li>Toda movimentação fica no histórico do lead, com o motivo e o trecho da conversa.</li></ul></div></div></section>';
 }
 function equipe(){
   const q=S.agents.filter(a=>a.in_queue).sort((a,b)=>a.queue_position-b.queue_position);
@@ -894,6 +928,7 @@ document.addEventListener('click',async e=>{
   else if(a==='status'){const {error}=await sb.rpc('crm_set_status',{p_status:v});if(error)toast(error.message,true);else{S.me.status=v;render()}}
   else if(a==='prio'){const l=L();const {error}=await sb.from('crm_leads').update({priority:!l.priority}).eq('id',l.id);if(error)toast(error.message,true)}
   else if(a==='lumi'){if(S.sel)askLumi(S.sel)}
+  else if(a==='autostage'){const on=!(S.ai&&S.ai.auto_stage!==false);const {error}=await sb.rpc('crm_ai_set_auto',{p_on:on});if(error)toast(error.message,true);else{S.ai={...(S.ai||{}),auto_stage:on};toast(on?'A Lumi vai organizar o funil automaticamente.':'Organização automática desligada: a Lumi só vai sugerir.');render()}}
   else if(a==='attach'){if(!windowOpen(L())){toast('A janela de 24 h está fechada: envie o modelo de boas-vindas primeiro.',true);return}$('#filepick').click()}
   else if(a==='rmfile'){const f=S.files.find(x=>x.id==v);if(f&&f.url)URL.revokeObjectURL(f.url);S.files=S.files.filter(x=>x.id!=v);render()}
   else if(a==='rec'){if(!windowOpen(L())){toast('A janela de 24 h está fechada: envie o modelo de boas-vindas primeiro.',true);return}startRec()}
