@@ -397,6 +397,12 @@ tr:last-child td{border-bottom:0}
 .speed:hover{border-color:var(--line-strong)}
 .mslot.aud{min-width:280px}
 
+
+.lq{flex:1;min-width:0;display:grid;gap:1px}.lq b{font-size:12.5px}.lq .ns{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lq .ns i{font-style:normal;color:var(--gold-deep);font-weight:600}
+.sug.old{opacity:.55}
+.sug.sk{min-height:62px;cursor:default;background:linear-gradient(90deg,var(--surface) 0,var(--gold-soft) 50%,var(--surface) 100%);background-size:200% 100%;animation:shimmer 1.4s linear infinite}
+.sug span{-webkit-line-clamp:3}
+
 /* ---------- responsivo ---------- */
 @media (max-width:1440px){.inbox{grid-template-columns:310px minmax(0,1fr) 340px}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media (max-width:1320px){.kpis{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}.grid2{grid-template-columns:1fr}.grid2>.card{height:auto;max-height:520px}}
@@ -623,12 +629,12 @@ async function openLead(id){
   sb.functions.invoke('crm-wa',{body:{action:'channel',lead_id:id}}).then(({data})=>{if(S.sel===id){S.chan=data&&data.ok?data:null;render()}}).catch(()=>{});
   const l=S.leads.find(x=>x.id===id);if(l&&l.unread&&l.owner_id===S.me.id)sb.rpc('crm_mark_read',{p_lead:id});
 }
-async function askLumi(id){
+async function askLumi(id,quiet){
   if(S.busy[id])return;S.busy[id]=true;render();
   const {data,error}=await sb.functions.invoke('crm-ai',{body:{lead_id:id}});
   delete S.busy[id];
-  if(error||data?.error){let msg=data?.error;try{msg=msg||(await error.context.json()).error}catch(x){}toast(msg||'A Lumi não conseguiu analisar agora.',true)}
-  else{S.ins[id]=data;toast('Lumi analisou a conversa.')}
+  if(error||data?.error){let msg=data?.error;try{msg=msg||(await error.context.json()).error}catch(x){}if(!quiet)toast(msg||'A Lumi não conseguiu analisar agora.',true)}
+  else{S.ins[id]=data;if(!quiet)toast('Lumi analisou a conversa.')}
   render();
 }
 
@@ -786,9 +792,18 @@ function inbox(){
 }
 function lumiStrip(l){
   const i=S.ins[l.id],busy=S.busy[l.id];
-  if(!i||!i.summary)return'<div class="lstrip"><div class="lh">'+brain(34,!busy)+'<b>Lumi</b><span class="ns">'+(busy?'Lendo a conversa e preparando sugestões…':i&&i.error?'Não consegui analisar: '+esc(i.error):'Ainda não analisei esta conversa.')+'</span><button class="btn sm gold" data-act="lumi" '+(busy?'disabled':'')+'>'+(busy?'<span class="spin"></span>':ico('spark','sm'))+'Analisar agora</button></div></div>';
-  const sug=(i.suggestions||[]).map((s,k)=>'<button class="sug" data-act="usesug" data-k="'+k+'" title="Usar esta sugestão"><b>'+esc(s.label)+'</b><span>'+esc(s.text)+'</span></button>').join('');
-  return'<div class="lstrip"><div class="lh">'+brain(34,!busy&&!lumiOn())+'<b>Lumi sugere</b><span class="ns" title="'+esc(i.next_step)+'">'+esc(i.next_step||'')+'</span><button class="btn sm ghost" data-act="lumi" title="Analisar de novo" '+(busy?'disabled':'')+'>'+(busy?'<span class="spin"></span>':ico('refresh','sm'))+'</button></div>'+(sug?'<div class="sugs">'+sug+'</div>':'')+'</div>';
+  const conv=S.msgs.filter(m=>m.direction!=='note'),lastAny=conv[conv.length-1],lastIn=[...conv].reverse().find(m=>m.direction==='in');
+  const fresh=i&&i.summary&&(!lastAny||(i.analyzed_msg_at&&t(lastAny.created_at)<=t(i.analyzed_msg_at)+2000));
+  // atualiza sozinha quando chega mensagem nova do cliente
+  if(lastAny&&lastAny.direction==='in'&&!fresh&&!busy){const k=l.id+':'+lastAny.id;S.autoAsk=S.autoAsk||{};if(!S.autoAsk[k]){S.autoAsk[k]=1;setTimeout(()=>askLumi(l.id,true),50)}}
+  const quote=lastIn&&lastIn.body&&!/^\[[^\]]{2,20}\]$/.test(lastIn.body.trim())?lastIn.body:(lastIn?'['+(MLAB[lastIn.msg_type]||'mensagem')+']':'');
+  const head=lastAny&&lastAny.direction==='in'?'Respondendo a':lastAny?'Para retomar a conversa':'Primeira mensagem';
+  const sugs=i&&i.suggestions&&i.suggestions.length?i.suggestions:[];
+  const sugHtml=sugs.map((s,k)=>'<button class="sug'+(busy||!fresh?' old':'')+'" data-act="usesug" data-k="'+k+'" title="'+esc(s.text)+'"><b>'+esc(s.label)+'</b><span>'+esc(s.text)+'</span></button>').join('');
+  return'<div class="lstrip"><div class="lh">'+brain(34,!busy&&!lumiOn())+'<div class="lq"><b>'+(busy?'Lumi está lendo a conversa…':'Sugestões da Lumi')+'</b>'+
+    (quote&&lastAny&&lastAny.direction==='in'?'<span class="ns"><i>'+head+':</i> “'+esc(quote.slice(0,160))+'”</span>':'<span class="ns">'+head+(i&&i.next_step?' · '+esc(i.next_step):'')+'</span>')+'</div>'+
+    '<button class="btn sm ghost" data-act="lumi" title="Gerar novas sugestões" '+(busy?'disabled':'')+'>'+(busy?'<span class="spin"></span>':ico('refresh','sm'))+'</button></div>'+
+    (sugHtml?'<div class="sugs">'+sugHtml+'</div>':busy?'<div class="sugs"><div class="sug sk"></div><div class="sug sk"></div><div class="sug sk"></div></div>':'<div class="row"><button class="btn sm gold" data-act="lumi">'+ico('spark','sm')+'Gerar sugestões</button>'+(i&&i.error?'<span class="ns" style="color:var(--crit)">'+esc(i.error)+'</span>':'')+'</div>')+'</div>';
 }
 function chat(l){
   let last='';const body=S.msgs.map(m=>{let h='';const d=fD(m.created_at);if(d!==last){last=d;h+='<div class="day">'+dayLabel(m.created_at)+'</div>'}
