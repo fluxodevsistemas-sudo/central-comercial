@@ -62,6 +62,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 textarea.inp{resize:vertical}
 .field{display:grid;gap:4px;min-width:0}
 .field label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.chip.tag{color:var(--tc);border-color:color-mix(in srgb,var(--tc) 35%,transparent);background:color-mix(in srgb,var(--tc) 9%,transparent)}
 .chip{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:2px 9px;font-size:11.5px;font-weight:500;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
 .chip.warn{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
 .chip.crit{background:var(--crit-soft);border-color:transparent;color:var(--crit)}
@@ -154,7 +155,7 @@ const STAGES=[['primeiro','Primeiro atendimento','var(--info)'],['qualificacao',
 const ST=Object.fromEntries(STAGES.map(s=>[s[0],{name:s[1],c:s[2]}]));
 const STATUS={online:['Online','var(--good)'],ocupado:['Ocupado','var(--warn)'],ausente:['Ausente','var(--info)'],offline:['Offline','var(--faint)']};
 const CLOSED=['ganho','perdido'];
-const S={session:null,me:null,agents:[],leads:[],msgs:[],hist:[],sel:null,view:'inbox',filter:'abertas',q:'',owner:'all',draft:'',mode:'out',modal:null,showCrm:false,loading:true,err:'',chans:[],msgChan:null,drag:null};
+const S={session:null,me:null,agents:[],leads:[],msgs:[],hist:[],sel:null,view:'inbox',filter:'abertas',q:'',owner:'all',tag:'all',draft:'',mode:'out',modal:null,showCrm:false,loading:true,err:'',chans:[],msgChan:null,drag:null};
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -175,7 +176,7 @@ const waiting=l=>t(l.last_in_at)>t(l.last_out_at)&&!CLOSED.includes(l.stage);
 
 /* ---------- data ---------- */
 async function loadAll(){
-  const [{data:ag},{data:ld}]=await Promise.all([sb.from('crm_agents').select('*').order('queue_position',{nullsFirst:false}),sb.from('crm_leads').select('*').order('last_msg_at',{ascending:false,nullsFirst:false}).limit(1000)]);
+  const [{data:ag},{data:ld}]=await Promise.all([sb.from('crm_agents').select('*').order('queue_position',{nullsFirst:false}),loadAllLeads()]);
   S.agents=ag||[];S.leads=ld||[];S.me=S.agents.find(a=>a.user_id===S.session.user.id)||null;
 }
 function upsertLead(row){const i=S.leads.findIndex(l=>l.id===row.id);if(i>=0)S.leads[i]=row;else S.leads.unshift(row);S.leads.sort((a,b)=>t(b.last_msg_at)-t(a.last_msg_at))}
@@ -228,9 +229,10 @@ function shell(){
   const titles={inbox:['Caixa de entrada',isAdmin()?'Todas as conversas do número de vendas':'Suas conversas'],funil:[isAdmin()?'Funil comercial':'Meu funil','Arraste os cartões entre as etapas'],equipe:['Equipe','Fila automática de distribuição']};
   const [h,sub]=titles[S.view];
   const ownerSel=isAdmin()&&S.view!=='equipe'?'<select class="inp sm" id="ownerf" data-change="owner" style="width:auto"><option value="all">Todos</option>'+S.agents.filter(a=>a.in_queue).map(a=>'<option value="'+a.id+'"'+(S.owner===a.id?' selected':'')+'>'+esc(a.name)+'</option>').join('')+'<option value="none"'+(S.owner==='none'?' selected':'')+'>Sem responsável</option></select>':'';
+  const tagSel=S.view!=='equipe'?'<select class="inp sm" id="tagf" data-change="tag" style="width:auto" aria-label="Filtrar por planilha"><option value="all">Todas as planilhas</option>'+allTags().map(g=>'<option value="'+esc(g)+'"'+(S.tag===g?' selected':'')+'>'+esc(g)+'</option>').join('')+'<option value="none"'+(S.tag==='none'?' selected':'')+'>Sem tag</option></select>':'';
   return'<div class="app"><aside class="nav"><div class="brand"><div class="mark">CC</div><div><b>Central Comercial</b><span>Número de vendas</span></div></div>'+nav+
    '<div class="foot"><b>'+esc(S.me.name)+'</b><small>'+(isAdmin()?'Administrador':'Na fila de atendimento')+'</small>'+statusBtns+'<button class="linkbtn" data-act="notif">Ativar notificações</button><button class="linkbtn" data-act="logout">Sair</button></div></aside>'+
-   '<main class="main"><header class="top"><div><h1>'+h+'</h1><div class="sub">'+sub+'</div></div><div class="grow"></div>'+ownerSel+(S.me.in_queue&&st!=='online'?'<span class="chip warn">Você está '+STATUS[st][0].toLowerCase()+' e não recebe leads novos</span>':'')+'</header>'+
+   '<main class="main"><header class="top"><div><h1>'+h+'</h1><div class="sub">'+sub+'</div></div><div class="grow"></div>'+tagSel+ownerSel+(S.me.in_queue&&st!=='online'?'<span class="chip warn">Você está '+STATUS[st][0].toLowerCase()+' e não recebe leads novos</span>':'')+'</header>'+
    '<section class="view">'+(S.view==='inbox'?inbox():S.view==='funil'?funil():equipe())+'</section></main></div>';
 }
 function loginView(){
@@ -239,12 +241,16 @@ function loginView(){
   '<div class="field"><label for="pass">Senha</label><input class="inp" id="pass" type="password" autocomplete="current-password" required></div>'+
   (S.err?'<div class="err">'+esc(S.err)+'</div>':'')+'<button class="btn pri" type="submit">Entrar</button></form></div>';
 }
-function visible(){let L=S.leads;if(isAdmin()&&S.owner!=='all')L=L.filter(l=>S.owner==='none'?!l.owner_id:l.owner_id===S.owner);return L}
+async function loadAllLeads(){const out=[];for(let i=0;;i+=1000){const {data,error}=await sb.from('crm_leads').select('*').order('last_msg_at',{ascending:false,nullsFirst:false}).order('id').range(i,i+999);if(error)return{data:out,error};out.push(...data);if(data.length<1000)break}return{data:out}}
+const TAGC={'Cerejeiras':'#c2417a','3 Amores':'#b7791f','Site grupo3amores.com.br':'#2b6cb0','Formulário Experience':'#6b46c1'};
+function tagChips(l){return(l.tags||[]).map(g=>'<span class="chip tag" style="--tc:'+(TAGC[g]||'#5b6470')+'">'+esc(g)+'</span>').join('')}
+function allTags(){const s=new Set(Object.keys(TAGC));S.leads.forEach(l=>(l.tags||[]).forEach(g=>s.add(g)));return[...s]}
+function visible(){let L=S.leads;if(isAdmin()&&S.owner!=='all')L=L.filter(l=>S.owner==='none'?!l.owner_id:l.owner_id===S.owner);if(S.tag!=='all')L=L.filter(l=>S.tag==='none'?!(l.tags||[]).length:(l.tags||[]).includes(S.tag));return L}
 function convItem(l){
   const silent=t(l.last_out_at)>t(l.last_in_at)&&!CLOSED.includes(l.stage)?(Date.now()-t(l.last_out_at))/H:0;
   return'<button class="conv'+(S.sel===l.id?' on':'')+'" data-act="open" data-id="'+l.id+'"><div class="avatar">'+esc(initials(l.name||'?'))+'</div><div class="cbody"><div class="ctop"><b>'+esc(l.name||phone(l.phone))+'</b><span class="ctime">'+fTime(l.last_msg_at)+'</span></div>'+
   '<div class="row" style="flex-wrap:nowrap"><span class="cmsg">'+esc(l.last_msg||'')+'</span>'+(l.unread?'<span class="badge">'+l.unread+'</span>':'')+'</div>'+
-  '<div class="row" style="gap:5px"><span class="chip"><span class="dot" style="background:'+ST[l.stage].c+'"></span>'+ST[l.stage].name+'</span>'+(isAdmin()?'<span class="chip">'+esc(agentName(l.owner_id))+'</span>':'')+(waiting(l)?'<span class="chip warn">Aguardando resposta</span>':'')+(silent>=24?'<span class="chip crit">'+Math.floor(silent)+' h sem retorno</span>':'')+(l.priority?'<span class="chip crit">Prioridade</span>':'')+'</div></div></button>';
+  '<div class="row" style="gap:5px"><span class="chip"><span class="dot" style="background:'+ST[l.stage].c+'"></span>'+ST[l.stage].name+'</span>'+tagChips(l)+(isAdmin()?'<span class="chip">'+esc(agentName(l.owner_id))+'</span>':'')+(waiting(l)?'<span class="chip warn">Aguardando resposta</span>':'')+(silent>=24?'<span class="chip crit">'+Math.floor(silent)+' h sem retorno</span>':'')+(l.priority?'<span class="chip crit">Prioridade</span>':'')+'</div></div></button>';
 }
 function inbox(){
   const q=S.q.toLowerCase();let L=visible();
@@ -278,7 +284,7 @@ function ficha(l){
   const f=(k,lab,type)=>'<div class="field"><label for="f-'+k+'">'+lab+'</label>'+(type==='area'?'<textarea class="inp sm" id="f-'+k+'" data-field="'+k+'" rows="3" placeholder="Não informado">'+esc(l[k]||'')+'</textarea>':'<input class="inp sm" id="f-'+k+'" data-field="'+k+'"'+(type?' type="'+type+'"':'')+' value="'+esc(l[k]??'')+'" placeholder="Não informado">')+'</div>';
   const hist=S.hist.slice(0,15).map(h=>'<div>'+(h.k==='a'?(h.reason==='round_robin'?'Distribuído pela fila para ':h.reason==='retorno'?'Cliente voltou: ficou com ':'Transferido para ')+esc(agentName(h.to_agent))+(h.reason.startsWith('transferencia')&&h.reason.length>15?' ('+esc(h.reason.slice(15))+')':''):esc(ST[h.from_stage]?.name||'')+' → '+esc(ST[h.to_stage]?.name||'')+(h.note?' · '+esc(h.note):''))+'<small>'+fDT(h.created_at)+'</small></div>').join('');
   return'<div class="pane crm" data-keep="crm"><div class="sec"><div class="row" style="justify-content:space-between"><h3>Ficha do cliente</h3><button class="btn sm" data-act="togglecrm">Fechar</button></div>'+
-   '<div class="row"><span class="chip accent">'+esc(agentName(l.owner_id))+'</span><span class="chip">desde '+fD(l.created_at)+'</span><button class="chip'+(l.priority?' crit':'')+'" data-act="prio" style="cursor:pointer">'+(l.priority?'Prioridade alta':'Marcar prioridade')+'</button></div>'+
+   '<div class="row"><span class="chip accent">'+esc(agentName(l.owner_id))+'</span><span class="chip">desde '+fD(l.created_at)+'</span>'+tagChips(l)+'<button class="chip'+(l.priority?' crit':'')+'" data-act="prio" style="cursor:pointer">'+(l.priority?'Prioridade alta':'Marcar prioridade')+'</button></div>'+
    '<div class="kv">'+f('name','Nome')+'<div class="field"><label>Telefone</label><div class="inp sm mono" style="background:var(--surface-2)">'+phone(l.phone)+'</div></div>'+
    f('event_type','Tipo de evento')+f('event_date','Data do evento','date')+f('guests','Convidados','number')+f('budget','Orçamento (R$)','number')+f('proposal_value','Proposta (R$)','number')+f('source','Origem')+
    '<div class="full">'+f('notes','Observações internas','area')+'</div></div>'+(l.stage==='perdido'?'<div class="chip crit">Motivo: '+esc(l.lost_reason||'')+'</div>':'')+(l.stage==='ganho'&&l.won_value?'<div class="chip accent">Contratado: R$ '+Number(l.won_value).toLocaleString('pt-BR')+'</div>':'')+'</div>'+
@@ -289,7 +295,7 @@ function funil(){
   const L=visible();
   return'<div class="kanban">'+STAGES.map(([k,n,c])=>{const cs=L.filter(l=>l.stage===k);
     return'<div class="col" data-stage="'+k+'"><div class="colh"><span class="dot" style="background:'+c+'"></span><b>'+n+'</b><span class="mono">'+cs.length+'</span></div><div class="cards" data-keep="c-'+k+'">'+
-    cs.slice(0,80).map(l=>'<div class="kc'+(l.priority?' prio':'')+'" draggable="true" data-lead="'+l.id+'" data-act="open" data-id="'+l.id+'"><b>'+esc(l.name||phone(l.phone))+'</b><div class="l">'+(l.event_type?'<span>'+esc(l.event_type)+'</span>':'')+(l.guests?'<span>'+l.guests+' conv.</span>':'')+'<span>última msg '+rel(l.last_msg_at)+'</span><span>na etapa '+rel(l.stage_since)+'</span></div>'+(isAdmin()?'<span class="chip">'+esc(agentName(l.owner_id))+'</span>':'')+(waiting(l)?'<span class="chip warn">Aguardando resposta</span>':'')+'</div>').join('')+
+    cs.slice(0,80).map(l=>'<div class="kc'+(l.priority?' prio':'')+'" draggable="true" data-lead="'+l.id+'" data-act="open" data-id="'+l.id+'"><b>'+esc(l.name||phone(l.phone))+'</b><div class="l">'+(l.event_type?'<span>'+esc(l.event_type)+'</span>':'')+(l.guests?'<span>'+l.guests+' conv.</span>':'')+'<span>última msg '+rel(l.last_msg_at)+'</span><span>na etapa '+rel(l.stage_since)+'</span></div>'+tagChips(l)+(isAdmin()?'<span class="chip">'+esc(agentName(l.owner_id))+'</span>':'')+(waiting(l)?'<span class="chip warn">Aguardando resposta</span>':'')+'</div>').join('')+
     (cs.length>80?'<div style="font-size:12px;color:var(--muted);text-align:center">+'+(cs.length-80)+' leads</div>':'')+'</div></div>'}).join('')+'</div>';
 }
 function equipe(){
@@ -363,6 +369,7 @@ document.addEventListener('change',async e=>{
   const k=el.dataset.change;
   if(k==='stage'){await moveStage(S.sel,el.value);render()}
   else if(k==='owner'){S.owner=el.value;render()}
+  else if(k==='tag'){S.tag=el.value;render()}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)&&e.target.id==='composer'){document.querySelector('[data-act="send"]')?.click()}if(e.key==='Escape'&&S.modal){S.modal=null;render()}});
 document.addEventListener('dragstart',e=>{const c=e.target.closest&&e.target.closest('.kc');if(c){S.drag=c.dataset.lead;try{e.dataTransfer.setData('text/plain',S.drag)}catch(x){}}});
