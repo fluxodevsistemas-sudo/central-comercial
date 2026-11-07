@@ -768,6 +768,8 @@ function render(){
     slot.appendChild(n)});
   const m=document.querySelector('.msgs');if(m&&S.scroll){m.scrollTop=m.scrollHeight;S.scroll=false}
   $('#modal').innerHTML=S.modal?modal():'';
+  if(S.view==='inbox'&&!S.sel&&!S.picked&&S.list&&S.list.length&&innerWidth>720){S.picked=true;const f=S.list[0].id;setTimeout(()=>{if(!S.sel)openLead(f)},0)}
+  const cv=document.querySelector('.convs');if(cv&&!cv.dataset.inf){cv.dataset.inf=1;cv.addEventListener('scroll',()=>{if(S.list&&S.lim<S.list.length&&cv.scrollTop+cv.clientHeight>cv.scrollHeight-600){S.lim+=300;schedule()}},{passive:true})}
 }
 function shell(){
   if(S.loading)return'<div class="login"><div class="empty">'+brain(110)+'<b>Carregando a Central…</b></div></div>';
@@ -817,11 +819,12 @@ function inbox(){
   if(S.filter==='hoje')L=L.filter(l=>dayKey(l.created_at)===dayKey(new Date()));
   if(S.filter==='quentes')L=L.filter(l=>S.ins[l.id]?.temperature==='quente'&&!CLOSED.includes(l.stage));
   if(S.filter==='encerradas')L=L.filter(l=>CLOSED.includes(l.stage));
+  S.list=L;S.lim=S.lim||300;
   const sel=S.leads.find(l=>l.id===S.sel);
   return'<div class="inbox'+(sel?' sel':'')+(S.showCrm?' showcrm':'')+'">'+(S.showCrm&&sel?'<div class="dscrim" data-act="togglecrm"></div>':'')+'<div class="pane list"><div class="lhead"><div class="search">'+ico('search','sm')+'<input class="inp" id="q" placeholder="Buscar nome, telefone ou mensagem" value="'+esc(S.q)+'" data-input="q"></div>'+
    '<div class="seg">'+[['abertas','Abertas'],['hoje','Hoje · '+visible().filter(l=>dayKey(l.created_at)===dayKey(new Date())).length],['naolidas','Não lidas'],['aguardando','Aguardando'],['quentes','Quentes'],['encerradas','Encerradas']].map(([k,n])=>'<button data-act="filter" data-v="'+k+'" class="'+(S.filter===k?'on':'')+'">'+n+'</button>').join('')+'</div>'+
    '<div class="muted" style="font-size:11.5px">'+L.length.toLocaleString('pt-BR')+' conversas</div></div>'+
-   '<div class="convs" data-keep="convs">'+(L.slice(0,300).map(convItem).join('')||'<div class="empty"><b>Nenhuma conversa</b><span>Quando um cliente chamar o número de vendas e cair com você, a conversa aparece aqui.</span></div>')+'</div></div>'+
+   '<div class="convs" data-keep="convs">'+(L.slice(0,S.lim).map(convItem).join('')+(L.length>S.lim?'<div class="empty" style="padding:14px"><button class="btn sm" data-act="more">Carregando mais conversas…</button></div>':'')||'<div class="empty"><b>Nenhuma conversa</b><span>Quando um cliente chamar o número de vendas e cair com você, a conversa aparece aqui.</span></div>')+'</div></div>'+
    (sel?chat(sel)+ficha(sel):'<div class="pane chat"><div class="empty" style="margin:auto">'+(LUMI_ON?brain(110,!lumiOn()):'')+'<b>Selecione uma conversa</b><span>'+(LUMI_ON?'A Lumi mostra a análise e as sugestões de resposta assim que você abrir um cliente.':'Escolha um cliente na lista para ver a conversa e responder.')+'</span></div></div><div class="pane crm"></div>')+'</div>';
 }
 function stageBar(l){return'<div class="stagebar" role="group" aria-label="Mudar etapa do funil">'+STAGES.map(([k,n,c])=>'<button class="stg'+(l.stage===k?' on':'')+'" data-act="qstage" data-v="'+k+'" style="--sc:'+c+'"'+(l.stage===k?' aria-current="true"':'')+'><span class="dot" style="background:'+c+'"></span>'+n+'</button>').join('')+'</div>'}
@@ -1037,7 +1040,8 @@ document.addEventListener('click',async e=>{
   if(e.target.closest('select'))return;
   if(el.tagName==='A')e.preventDefault();
   const L=()=>S.leads.find(x=>x.id===S.sel);
-  if(a==='nav'){S.view=v;render()}
+  if(a==='nav'){if(v==='inbox'&&S.view!=='inbox')S.picked=false;S.view=v;render()}
+  else if(a==='more'){S.lim+=300;render()}
   else if(a==='qstage'){if(S.sel&&v){await moveStage(S.sel,v);render()}}
   else if(a==='open')openLead(id);
   else if(a==='back'){S.sel=null;render()}
