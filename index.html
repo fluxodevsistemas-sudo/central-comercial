@@ -1044,8 +1044,8 @@ function dashView(){
       '<div style="padding:12px 16px;border-bottom:1px solid var(--line)"><div class="search">'+ico('search','sm')+'<input class="inp" id="dq" inputmode="search" placeholder="Últimos 4 números do telefone (ou nome)" data-input="dq" value="'+esc(S.dq||'')+'"></div></div>'+
       '<div class="dlist">'+(TL.map(l=>'<button class="drow" data-act="open" data-id="'+l.id+'">'+avatar(l.name||l.phone,'sm')+'<span class="dn"><b>'+esc(l.name||'Cliente sem nome')+'</b><small class="mono">'+phone(l.phone).replace(/(\d{4})$/,'<mark>$1</mark>')+'</small></span><span class="chip">'+esc(ST[l.stage]?ST[l.stage].name:l.stage)+'</span><span class="dc">'+esc(l.owner_id?agentName(l.owner_id):'Sem responsável')+'</span><small class="dd mono">'+fDT(l.created_at)+'</small></button>').join('')||'<div class="empty" style="padding:22px"><b>Nenhum lead encontrado</b><span>Confira os 4 últimos números.</span></div>')+'</div></div>';
   }
-  const key=m0.toISOString();if(S.missKey!==key){S.missKey=key;S.miss=null;loadMissing(m0,m1,key)}
-  const miss=S.miss&&S.miss.key===key?S.miss.rows:[];
+  const key=m0.toISOString();if(isAdmin()&&S.missKey!==key){S.missKey=key;S.miss=null;loadMissing(m0,m1,key)}
+  const miss=isAdmin()&&S.miss&&S.miss.key===key?S.miss.rows:[];
   const warn=miss.length?'<div class="card" style="border-color:color-mix(in srgb,var(--warn) 45%,var(--line))"><div class="ch">'+ico('alert')+'<b>Leads da planilha que não entraram no CRM</b><span class="cr">'+miss.length+'</span></div><div class="dlist">'+miss.map(r=>'<div class="drow" style="cursor:default">'+avatar(r.nome||'?','sm')+'<span class="dn"><b>'+esc(r.nome||'Sem nome')+'</b><small class="mono">'+esc(r.telefone||'sem telefone')+' · '+esc(r.motivo)+'</small></span><span class="chip">'+esc((SRCL[r.src]||[r.src])[0])+'</span><span class="dc"></span><small class="dd mono">'+fDT(r.created_at)+'</small></div>').join('')+'</div></div>':'';
   return'<div class="lumi rel">'+head+kp+warn+card+'<div class="ch" style="padding:2px 2px 0"><b>Leads por origem</b><span class="cr" style="margin-left:8px">'+esc(mName)+'</span></div>'+tcards+list+'</div>';
 }
