@@ -652,7 +652,7 @@ async function openLead(id){
   if(S.sel!==id)return;
   S.msgs=(m||[]).reverse();S.hist=[...(a||[]).map(x=>({...x,k:'a'})),...(h||[]).map(x=>({...x,k:'s'}))].sort((x,y)=>t(y.created_at)-t(x.created_at));
   S.msgChan=sb.channel('msgs-'+id).on('postgres_changes',{event:'*',schema:'public',table:'crm_messages',filter:'lead_id=eq.'+id},p=>{
-    const i=S.msgs.findIndex(x=>x.id===p.new.id);if(i>=0)S.msgs[i]=p.new;else S.msgs.push(p.new);S.scroll=true;schedule()}).subscribe();
+    let i=S.msgs.findIndex(x=>x.id===p.new.id||(p.new.wamid&&x.wamid===p.new.wamid&&String(x.id).startsWith('tmp-')));if(i<0&&p.new.direction==='out')i=S.msgs.findIndex(x=>String(x.id).startsWith('tmp-')&&x.status==='sending'&&x.body===p.new.body);if(i>=0)S.msgs[i]=p.new;else S.msgs.push(p.new);S.scroll=true;schedule()}).subscribe();
   S.scroll=true;render();
   // Sem limite: as mensagens mais antigas chegam em segundo plano, de 1000 em 1000, sem tirar a pessoa do lugar
   if((m||[]).length===1000)(async()=>{for(let i=1000;;i+=1000){const {data:o,error}=await sb.from('crm_messages').select('*').eq('lead_id',id).order('created_at',{ascending:false}).range(i,i+999);
@@ -844,7 +844,7 @@ function chat(l){
   let last='';const body=S.msgs.map(m=>{let h='';const d=fD(m.created_at);if(d!==last){last=d;h+='<div class="day">'+dayLabel(m.created_at)+'</div>'}
     const cls=m.direction==='in'?'in':m.direction==='note'?'note':'out';
     h+='<div class="bub '+cls+(m.status==='failed'?' fail':'')+(m.media_path||MEDIA_T.includes(m.msg_type)?' media':'')+'">'+(m.direction==='note'?'<div style="font-size:11px;font-weight:600;color:var(--warn)">Nota interna · '+esc(agentName(m.sent_by))+'</div>':'')+mediaHtml(m)+(m.body&&!(MEDIA_T.includes(m.msg_type)&&/^\[[^\]]{2,20}\]$/.test(m.body.trim()))?'<div class="btx">'+esc(m.body)+'</div>':((m.media_path||MEDIA_T.includes(m.msg_type))?'':esc('['+m.msg_type+']')))+
-      '<div class="meta">'+(m.source==='zapi'?'<span title="Mensagem do WhatsApp do consultor">WhatsApp do consultor</span> · ':'')+(m.direction==='out'&&isAdmin()&&m.sent_by?esc(agentName(m.sent_by))+' · ':'')+fDT(m.created_at)+(m.direction==='out'?' · '+({sent:'enviada',delivered:'entregue',read:'lida',failed:'falhou'}[m.status]||''):'')+'</div>'+(m.error?'<div style="color:var(--crit);font-size:11.5px">'+esc(m.error)+'</div>':'')+'</div>';return h}).join('');
+      '<div class="meta">'+(m.source==='zapi'?'<span title="Mensagem do WhatsApp do consultor">WhatsApp do consultor</span> · ':'')+(m.direction==='out'&&isAdmin()&&m.sent_by?esc(agentName(m.sent_by))+' · ':'')+fDT(m.created_at)+(m.direction==='out'?' · '+({sending:'enviando…',sent:'enviada',delivered:'entregue',read:'lida',failed:'falhou'}[m.status]||''):'')+'</div>'+(m.error?'<div style="color:var(--crit);font-size:11.5px">'+esc(m.error)+'</div>':'')+'</div>';return h}).join('');
   const viaWa=S.chan&&S.chan.ok,metaCh=viaWa&&S.chan.provider==='meta';
   const open=canSend(l);const left=windowOpen(l)?24*H-(Date.now()-t(l.last_in_at)):0;
   const mine=isAdmin()||l.owner_id===S.me.id;
@@ -1075,11 +1075,17 @@ document.addEventListener('click',async e=>{
     const l=L();if(l&&S.mode==='out'&&S.files.length){sendFiles(l);return}
     const text=S.draft.trim();if(!l||!text||S.sending)return;
     if(S.mode==='note'){const {error}=await sb.rpc('crm_add_note',{p_lead:l.id,p_body:text});if(error)return toast(error.message,true);S.draft='';render();return}
-    S.sending=true;render();
-    const {data,error}=await sb.functions.invoke('crm-send',{body:{lead_id:l.id,text}});
-    S.sending=false;
-    if(error||data?.error){let msg=data?.error;try{msg=msg||(await error.context.json()).error}catch(x){}toast(msg||'Não foi possível enviar.',true)}else S.draft='';
-    render();
+    // Envio instantâneo: a mensagem aparece na hora e o envio à Meta segue em segundo plano
+    const tmp={id:'tmp-'+Date.now()+Math.random().toString(36).slice(2,6),lead_id:l.id,direction:'out',msg_type:'text',body:text,status:'sending',sent_by:S.me.id,created_at:new Date().toISOString(),source:'cloud'};
+    S.msgs.push(tmp);S.draft='';S.scroll=true;render();setTimeout(()=>{const c=$('#composer');if(c)c.focus()},0);
+    sb.functions.invoke('crm-send',{body:{lead_id:l.id,text}}).then(async({data,error})=>{
+      const i=S.msgs.findIndex(x=>x.id===tmp.id);
+      if(error||data?.error){let msg=data?.error;try{msg=msg||(await error.context.json()).error}catch(x){}
+        if(i>=0){S.msgs[i]={...tmp,status:'failed',error:msg||'Não foi possível enviar.'};
+          if(S.msgs.some(x=>x.id!==tmp.id&&x.status==='failed'&&x.body===text&&t(x.created_at)>=t(tmp.created_at)-5000))S.msgs.splice(i,1)}
+        toast(msg||'Não foi possível enviar.',true)}
+      else if(i>=0){if(S.msgs.some(x=>x.wamid&&x.wamid===data.wamid))S.msgs.splice(i,1);else S.msgs[i]={...tmp,status:'sent',wamid:data.wamid}}
+      schedule()}).catch(()=>{const i=S.msgs.findIndex(x=>x.id===tmp.id);if(i>=0){S.msgs[i]={...tmp,status:'failed',error:'Sem conexão. Tente de novo.'};schedule()}});
   }
   else if(a==='template'){
     const l=L();S.sending=true;render();
