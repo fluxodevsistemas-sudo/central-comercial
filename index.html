@@ -654,7 +654,7 @@ async function openLead(id){
   S.msgChan=sb.channel('msgs-'+id).on('postgres_changes',{event:'*',schema:'public',table:'crm_messages',filter:'lead_id=eq.'+id},p=>{
     const i=S.msgs.findIndex(x=>x.id===p.new.id);if(i>=0)S.msgs[i]=p.new;else S.msgs.push(p.new);S.scroll=true;schedule()}).subscribe();
   S.scroll=true;render();
-  sb.functions.invoke('crm-wa',{body:{action:'channel',lead_id:id}}).then(({data})=>{if(S.sel===id){S.chan=data&&data.ok?data:null;render()}}).catch(()=>{});
+  S.chan=null; // todo envio sai pelo número oficial da empresa (crm-send), respeitando a janela de 24 h
   const l=S.leads.find(x=>x.id===id);if(l&&l.unread&&l.owner_id===S.me.id)sb.rpc('crm_mark_read',{p_lead:id});
 }
 async function askLumi(id,quiet){
@@ -705,7 +705,7 @@ async function sendFiles(l){
       const safe=(f.name||'arquivo').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w.\-]+/g,'_').slice(-80);
       const path=l.id+'/out/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'-'+safe;
       const {error:ue}=await sb.storage.from('crm-media').upload(path,f.file,{contentType:f.mime,upsert:false});if(ue)throw new Error(ue.message);
-      const {data,error}=S.chan&&S.chan.ok?await sb.functions.invoke('crm-wa',{body:{action:'send',lead_id:l.id,media:{path,name:f.name,mime:f.mime,size:f.size},caption}}):await sb.functions.invoke('crm-send',{body:{lead_id:l.id,media:{path,name:f.name,mime:f.mime,size:f.size},caption}});
+      const {data,error}=await sb.functions.invoke('crm-send',{body:{lead_id:l.id,media:{path,name:f.name,mime:f.mime,size:f.size},caption}});
       if(error||data?.error){let msg=data?.error;try{msg=msg||(await error.context.json()).error}catch(x){}throw new Error(msg||'Não foi possível enviar.')}
       f0.st='ok';caption='';
     }catch(e){f0.st='err';fails++;toast(f0.name+': '+e.message,true)}
@@ -1071,7 +1071,7 @@ document.addEventListener('click',async e=>{
     const text=S.draft.trim();if(!l||!text||S.sending)return;
     if(S.mode==='note'){const {error}=await sb.rpc('crm_add_note',{p_lead:l.id,p_body:text});if(error)return toast(error.message,true);S.draft='';render();return}
     S.sending=true;render();
-    const {data,error}=S.chan&&S.chan.ok?await sb.functions.invoke('crm-wa',{body:{action:'send',lead_id:l.id,text}}):await sb.functions.invoke('crm-send',{body:{lead_id:l.id,text}});
+    const {data,error}=await sb.functions.invoke('crm-send',{body:{lead_id:l.id,text}});
     S.sending=false;
     if(error||data?.error){let msg=data?.error;try{msg=msg||(await error.context.json()).error}catch(x){}toast(msg||'Não foi possível enviar.',true)}else S.draft='';
     render();
