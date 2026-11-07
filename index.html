@@ -617,11 +617,11 @@ const lumiOn=()=>S.ai&&S.ai.last_scan_at&&Date.now()-t(S.ai.last_scan_at)<15*6e4
 /* ---------- data ---------- */
 async function pageAll(table,order){const out=[];for(let i=0;;i+=1000){let q=sb.from(table).select('*');order.forEach(o=>q=q.order(o[0],o[1]));const {data,error}=await q.range(i,i+999);if(error||!data)break;out.push(...data);if(data.length<1000)break}return out}
 async function loadAll(){
-  const [{data:ag},ld,ins,{data:act},{data:ai}]=await Promise.all([
+  const [{data:ag},ld,ins,act,{data:ai}]=await Promise.all([
     sb.from('crm_agents').select('*').order('queue_position',{nullsFirst:false}),
     pageAll('crm_leads',[['last_msg_at',{ascending:false,nullsFirst:false}],['id',{}]]),
     pageAll('crm_ai_insights',[['lead_id',{}]]),
-    sb.from('crm_ai_activity').select('*').order('created_at',{ascending:false}).limit(60),
+    pageAll('crm_ai_activity',[['created_at',{ascending:false}],['id',{}]]),
     sb.from('crm_ai_status').select('*').eq('id',1).maybeSingle()]);
   S.agents=ag||[];S.leads=ld||[];S.ins=Object.fromEntries((ins||[]).map(r=>[r.lead_id,r]));S.act=act||[];S.ai=ai||null;
   S.me=S.agents.find(a=>a.user_id===S.session.user.id)||null;
@@ -654,6 +654,11 @@ async function openLead(id){
   S.msgChan=sb.channel('msgs-'+id).on('postgres_changes',{event:'*',schema:'public',table:'crm_messages',filter:'lead_id=eq.'+id},p=>{
     const i=S.msgs.findIndex(x=>x.id===p.new.id);if(i>=0)S.msgs[i]=p.new;else S.msgs.push(p.new);S.scroll=true;schedule()}).subscribe();
   S.scroll=true;render();
+  // Sem limite: as mensagens mais antigas chegam em segundo plano, de 1000 em 1000, sem tirar a pessoa do lugar
+  if((m||[]).length===1000)(async()=>{for(let i=1000;;i+=1000){const {data:o,error}=await sb.from('crm_messages').select('*').eq('lead_id',id).order('created_at',{ascending:false}).range(i,i+999);
+    if(S.sel!==id||error||!o||!o.length)break;const box=document.querySelector('.msgs'),h0=box?box.scrollHeight:0,y0=box?box.scrollTop:0;
+    const have=new Set(S.msgs.map(x=>x.id));S.msgs=[...o.reverse().filter(x=>!have.has(x.id)),...S.msgs];render();
+    const b2=document.querySelector('.msgs');if(b2)b2.scrollTop=y0+(b2.scrollHeight-h0);if(o.length<1000)break}})();
   S.chan=null; // todo envio sai pelo número oficial da empresa (crm-send), respeitando a janela de 24 h
   const l=S.leads.find(x=>x.id===id);if(l&&l.unread&&l.owner_id===S.me.id)sb.rpc('crm_mark_read',{p_lead:id});
 }
