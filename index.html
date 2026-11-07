@@ -176,7 +176,9 @@ textarea.inp{resize:vertical}
 .chat{background:var(--chat-bg);background-image:radial-gradient(color-mix(in srgb,var(--ink) 5%,transparent) 1px,transparent 1px);background-size:18px 18px}
 .chead{display:flex;align-items:center;gap:12px;padding:11px 18px;background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap}
 .chead .who{flex:1;min-width:0}.chead b{display:block;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chead .who span{white-space:nowrap}.chead span{font-size:12px;color:var(--muted);font-family:var(--mono)}
-.msgs{flex:1;overflow:auto;padding:18px max(16px,3vw);display:flex;flex-direction:column;gap:6px}
+.msgs{flex:1;overflow:auto;padding:18px max(16px,3vw);display:flex;flex-direction:column-reverse;overflow-anchor:none}
+.msgsin{display:flex;flex-direction:column;gap:6px;flex:1 0 auto}
+.msgsin>.empty{margin:auto}
 .day{align-self:center;font-size:11px;color:var(--muted);background:var(--surface);border-radius:20px;padding:3px 11px;margin:10px 0;border:1px solid var(--line);box-shadow:var(--shadow-sm)}
 .bub{max-width:min(72%,560px);padding:8px 12px 6px;border-radius:14px;font-size:13.5px;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 1px 1.5px rgba(16,24,20,.08)}
 .bub.in{align-self:flex-start;background:var(--bubble-in);border-top-left-radius:4px}.bub.out{align-self:flex-end;background:var(--bubble-out);border-top-right-radius:4px}
@@ -705,9 +707,9 @@ async function openLead(id){
   S.scroll=true;render();
   // Sem limite: as mensagens mais antigas chegam em segundo plano, de 1000 em 1000, sem tirar a pessoa do lugar
   if((m||[]).length===1000)(async()=>{for(let i=1000;;i+=1000){const {data:o,error}=await sb.from('crm_messages').select('*').eq('lead_id',id).order('created_at',{ascending:false}).range(i,i+999);
-    if(S.sel!==id||error||!o||!o.length)break;const box=document.querySelector('.msgs'),h0=box?box.scrollHeight:0,y0=box?box.scrollTop:0;
+    if(S.sel!==id||error||!o||!o.length)break;
     const have=new Set(S.msgs.map(x=>x.id));S.msgs=[...o.reverse().filter(x=>!have.has(x.id)),...S.msgs];render();
-    const b2=document.querySelector('.msgs');if(b2)b2.scrollTop=y0+(b2.scrollHeight-h0);if(o.length<1000)break}})();
+    if(o.length<1000)break}})();
   S.chan=null; // todo envio sai pelo número oficial da empresa (crm-send), respeitando a janela de 24 h
   const l=S.leads.find(x=>x.id===id);if(l&&l.unread&&l.owner_id===S.me.id)sb.rpc('crm_mark_read',{p_lead:id});
 }
@@ -851,7 +853,7 @@ function render(){
       else{n.innerHTML='<video class="mvid" controls preload="metadata"></video>';n.querySelector('video').src=src}
       S.mnodes[id]=n}
     if(n.parentNode!==slot)slot.appendChild(n)});
-  const m=document.querySelector('.msgs');if(m&&(S.scroll||S.stick)){m.scrollTop=m.scrollHeight;S.scroll=false}
+  const m=document.querySelector('.msgs');if(m&&(S.scroll||S.stick)){m.scrollTop=0;S.scroll=false}
   $('#modal').innerHTML=S.modal?modal():'';
   if(S.view==='inbox'&&!S.sel&&!S.picked&&S.list&&S.list.length&&innerWidth>720){S.picked=true;const f=S.list[0].id;setTimeout(()=>{if(!S.sel)openLead(f)},0)}
   const cv=document.querySelector('.convs');if(cv&&!INF.has(cv)){INF.add(cv);cv.addEventListener('scroll',()=>{if(S.list&&S.lim<S.list.length&&cv.scrollTop+cv.clientHeight>cv.scrollHeight-600){S.lim+=300;schedule()}},{passive:true})}
@@ -945,7 +947,7 @@ function chat(l){
   const mine=isAdmin()||l.owner_id===S.me.id;
   return'<div class="pane chat"><div class="chead"><button class="btn sm back" data-act="back" aria-label="Voltar">'+ico('back','sm')+'</button>'+avatar(l.name||l.phone)+'<div class="who"><b>'+esc(l.name||'Cliente sem nome')+'</b><span>'+phone(l.phone)+'</span></div>'+
    '<select class="inp sm" id="stagesel" data-change="stage" style="width:auto" aria-label="Etapa do funil">'+STAGES.map(s=>'<option value="'+s[0]+'"'+(l.stage===s[0]?' selected':'')+'>'+s[1]+'</option>').join('')+'</select><button class="btn sm fichabtn" data-act="togglecrm">'+ico('panel','sm')+'<span class="t">Ficha</span></button></div>'+
-   '<div class="msgs" data-keep="msgs">'+(body||'<div class="empty" style="margin:auto"><b>Sem mensagens ainda</b><span>As mensagens desta conversa aparecem aqui assim que chegarem.</span></div>')+'</div>'+
+   '<div class="msgs" data-keep="msgs"><div class="msgsin">'+(body||'<div class="empty" style="margin:auto"><b>Sem mensagens ainda</b><span>As mensagens desta conversa aparecem aqui assim que chegarem.</span></div>')+'</div></div>'+
    (mine?'<div class="composer">'+(LUMI_ON&&S.mode==='out'&&!S.files.length&&!S.rec?lumiStrip(l):'')+(S.mode==='out'&&!S.rec?stageBar(l):'')+'<div class="bar"><div class="seg">'+[['out','Responder'],['note','Nota interna']].map(([k,n])=>'<button data-act="mode" data-v="'+k+'" class="'+(S.mode===k?'on':'')+'">'+n+'</button>').join('')+'</div>'+
    '<span class="winfo" style="color:'+(open?'var(--good)':'var(--warn)')+'">'+(viaWa&&!metaCh?ico('chat','sm')+'Enviando pelo WhatsApp de '+esc(S.chan.consultor):ico('clock','sm')+(viaWa?'WhatsApp de '+esc(S.chan.consultor)+' · ':'')+(open?'Janela de 24 h aberta · '+Math.floor(left/H)+' h '+Math.floor(left%H/6e4)+' min':'Janela de 24 h fechada'+(viaWa?' · aguarde o cliente responder':' · só modelo aprovado')))+'</span></div>'+
    (S.mode==='out'&&!open&&metaCh?'<div class="bar"><span style="font-size:12.5px;color:var(--muted)">Este cliente fala com o número oficial de '+esc(S.chan.consultor)+'. Fora da janela de 24 h, só é possível responder quando ele mandar mensagem.</span></div>':
@@ -1210,9 +1212,9 @@ document.addEventListener('submit',async e=>{
   const {error}=await sb.auth.signInWithPassword({email:$('#email').value.trim(),password:$('#pass').value});
   if(error){S.err='E-mail ou senha incorretos.';render()}
 });
-document.addEventListener('scroll',e=>{const t=e.target;if(t&&t.classList&&t.classList.contains('msgs'))S.stick=t.scrollHeight-t.scrollTop-t.clientHeight<90},true);
-document.addEventListener('load',e=>{const t=e.target;if(S.stick&&t&&(t.tagName==='IMG'||t.tagName==='VIDEO')&&t.closest&&t.closest('.msgs')){const m=t.closest('.msgs');m.scrollTop=m.scrollHeight}},true);
-document.addEventListener('loadedmetadata',e=>{const t=e.target;if(S.stick&&t&&t.closest&&t.closest('.msgs')){const m=t.closest('.msgs');m.scrollTop=m.scrollHeight}},true);
+document.addEventListener('scroll',e=>{const t=e.target;if(t&&t.classList&&t.classList.contains('msgs'))S.stick=Math.abs(t.scrollTop)<90},true);
+document.addEventListener('load',e=>{const t=e.target;if(S.stick&&t&&(t.tagName==='IMG'||t.tagName==='VIDEO')&&t.closest&&t.closest('.msgs')){const m=t.closest('.msgs');m.scrollTop=0}},true);
+document.addEventListener('loadedmetadata',e=>{const t=e.target;if(S.stick&&t&&t.closest&&t.closest('.msgs')){const m=t.closest('.msgs');m.scrollTop=0}},true);
 document.addEventListener('pointerdown',e=>{const b=e.target.closest&&e.target.closest('[data-act="rec"]');if(b)micWarm()},{passive:true});
 document.addEventListener('click',async e=>{
   if(S.dd&&!(e.target.closest&&e.target.closest('.dd'))){S.dd=null;S.ddq='';render()}
