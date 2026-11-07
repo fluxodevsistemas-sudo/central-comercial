@@ -438,6 +438,19 @@ tr:last-child td{border-bottom:0}
 .drow:hover{background:var(--surface-2)}.drow .dn{display:grid;min-width:0}.drow .dn b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.drow .dn small{color:var(--muted)}
 .drow mark{background:var(--accent-soft);color:var(--accent);border-radius:4px;padding:0 2px}.drow .dc{font-size:12.5px;color:var(--muted)}.drow .dd{color:var(--faint);font-size:11.5px}
 @media (max-width:720px){.drow{grid-template-columns:auto minmax(0,1fr) auto}.drow .dc,.drow .dd{display:none}.tgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.qboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;align-items:start}
+.qcol{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:12px;display:grid;gap:8px;transition:border-color .15s,background .15s}
+.qcol.over{border-color:var(--accent);background:var(--accent-soft)}
+.qh{display:flex;align-items:center;gap:8px}.qh b{font-size:14px}.qs{color:var(--faint);font-size:12px;margin-top:-4px}
+.qlist{display:grid;gap:8px;min-height:64px}
+.qcard{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:10px 12px;position:relative;transition:transform .12s,box-shadow .12s,opacity .12s}
+.qcard[draggable]{cursor:grab}.qcard[draggable]:active{cursor:grabbing}.qcard.dragging{opacity:.4}.qcard.busy{opacity:.6}
+.qcard:hover{box-shadow:var(--shadow)}.qcard.ins{box-shadow:0 -3px 0 var(--accent)}.qcard.insa{box-shadow:0 3px 0 var(--accent)}
+.qpos{font-weight:700;color:var(--accent);min-width:24px}.qn{display:grid;min-width:0;flex:1}.qn b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qn small{color:var(--muted);font-size:12px;display:flex;align-items:center;gap:5px}.qn .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.qbtn{display:flex;gap:2px}.qbtn .btn{width:26px;height:26px;padding:0;font-size:10px}
+.qempty{border:1.5px dashed var(--line-strong);border-radius:11px;padding:16px;text-align:center;color:var(--faint);font-size:12.5px}
+@media (pointer:coarse){.qbtn .btn{width:34px;height:34px;font-size:12px}}
 /* ---------- responsivo ---------- */
 @media (max-width:1440px){.inbox{grid-template-columns:310px minmax(0,1fr) 340px}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media (max-width:1320px){.kpis{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}.grid2{grid-template-columns:1fr}.grid2>.card{height:auto;max-height:520px}}
@@ -628,13 +641,13 @@ const lumiOn=()=>S.ai&&S.ai.last_scan_at&&Date.now()-t(S.ai.last_scan_at)<15*6e4
 /* ---------- data ---------- */
 async function pageAll(table,order){const out=[];for(let i=0;;i+=1000){let q=sb.from(table).select('*');order.forEach(o=>q=q.order(o[0],o[1]));const {data,error}=await q.range(i,i+999);if(error||!data)break;out.push(...data);if(data.length<1000)break}return out}
 async function loadAll(){
-  const [{data:ag},ld,ins,act,{data:ai}]=await Promise.all([
+  const [{data:ag},ld,ins,act,{data:ai},{data:cf}]=await Promise.all([
     sb.from('crm_agents').select('*').order('queue_position',{nullsFirst:false}),
     pageAll('crm_leads',[['last_msg_at',{ascending:false,nullsFirst:false}],['id',{}]]),
     pageAll('crm_ai_insights',[['lead_id',{}]]),
     pageAll('crm_ai_activity',[['created_at',{ascending:false}],['id',{}]]),
-    sb.from('crm_ai_status').select('*').eq('id',1).maybeSingle()]);
-  S.agents=ag||[];S.leads=ld||[];S.ins=Object.fromEntries((ins||[]).map(r=>[r.lead_id,r]));S.act=act||[];S.ai=ai||null;
+    sb.from('crm_ai_status').select('*').eq('id',1).maybeSingle(),sb.from('crm_config').select('rr_last_position,eligible_statuses').eq('id',1).maybeSingle()]);
+  S.agents=ag||[];S.cfg=cf||null;S.leads=ld||[];S.ins=Object.fromEntries((ins||[]).map(r=>[r.lead_id,r]));S.act=act||[];S.ai=ai||null;
   S.me=S.agents.find(a=>a.user_id===S.session.user.id)||null;
 }
 function upsertLead(row){const i=S.leads.findIndex(l=>l.id===row.id);if(i>=0)S.leads[i]=row;else S.leads.unshift(row);S.leads.sort((a,b)=>t(b.last_msg_at)-t(a.last_msg_at))}
@@ -647,6 +660,7 @@ function subscribe(){
       if(!was&&p.new.owner_id===S.me.id){toast('Novo lead: '+(p.new.name||phone(p.new.phone)));notify(p.new)}
       if(was&&p.new.unread>was.unread&&p.new.id!==S.sel)notify(p.new)}
     schedule()}).subscribe());
+  S.chans.push(sb.channel('crm-config').on('postgres_changes',{event:'UPDATE',schema:'public',table:'crm_config'},p=>{S.cfg={...(S.cfg||{}),...p.new};schedule()}).subscribe());
   S.chans.push(sb.channel('crm-agents').on('postgres_changes',{event:'*',schema:'public',table:'crm_agents'},p=>{const i=S.agents.findIndex(a=>a.id===p.new.id);if(i>=0)S.agents[i]=p.new;if(p.new.id===S.me.id)S.me=p.new;schedule()}).subscribe());
   S.chans.push(sb.channel('crm-ai').on('postgres_changes',{event:'*',schema:'public',table:'crm_ai_insights'},p=>{if(p.new&&p.new.lead_id){S.ins[p.new.lead_id]=p.new;if(S.busy[p.new.lead_id]){delete S.busy[p.new.lead_id]}}schedule()})
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'crm_ai_activity'},p=>{S.act.unshift(p.new);S.act=S.act.slice(0,80);schedule()})
@@ -1096,17 +1110,50 @@ function relView(){
      (todayL.map(l=>'<button class="prio-item" data-act="open" data-id="'+l.id+'">'+avatar(l.name||l.phone)+'<div style="min-width:0"><div class="row" style="gap:6px"><b style="font-size:13.5px">'+esc(l.name||phone(l.phone))+'</b><span class="chip"><span class="dot" style="background:'+ST[l.stage].c+'"></span>'+ST[l.stage].name+'</span>'+tagChips(l)+(isAdmin()?'<span class="chip">'+esc(agentName(l.owner_id))+'</span>':'')+'</div><p>'+esc([l.event_type,l.guests?l.guests+' convidados':''].filter(Boolean).join(' · ')||phone(l.phone))+'</p></div><span class="mono muted" style="font-size:12px">'+fTime(l.created_at)+'</span></button>').join('')||'<div class="empty"><span>Nenhum lead hoje ainda.</span></div>')+'</div></div>'+
    '</div>';
 }
+// Fila: quem está online fica na frente, na ordem em que vai receber; o admin arrasta para reordenar (estilo kanban)
+function qOrder(){
+  const cons=S.agents.filter(a=>a.role!=='admin'),last=(S.cfg&&S.cfg.rr_last_position)||0,el=(S.cfg&&S.cfg.eligible_statuses)||['online'];
+  const inq=cons.filter(a=>a.in_queue).sort((a,b)=>a.queue_position-b.queue_position);
+  const on=inq.filter(a=>el.includes(a.status)).sort((a,b)=>((a.queue_position<=last)-(b.queue_position<=last))||a.queue_position-b.queue_position);
+  return{on,pause:inq.filter(a=>!el.includes(a.status)),off:cons.filter(a=>!a.in_queue).sort((a,b)=>a.name.localeCompare(b.name))};
+}
 function equipe(){
-  const adm=isAdmin();
-  const cons=S.agents.filter(a=>a.role!=='admin');
-  const q=cons.filter(a=>a.in_queue).sort((a,b)=>a.queue_position-b.queue_position),off=cons.filter(a=>!a.in_queue).sort((a,b)=>a.name.localeCompare(b.name));
-  const row=a=>{const[n,c]=STATUS[a.status||'offline'];const on=a.status==='online',busy=S.busy&&S.busy[a.id];
-   const ctl=adm?'<td><button class="sw'+(a.in_queue?' on':'')+'" data-act="agq" data-id="'+a.id+'" role="switch" aria-checked="'+a.in_queue+'" title="Ativar ou desativar na fila"'+(busy?' disabled':'')+'><i></i></button></td><td>'+(a.in_queue?'<button class="sw'+(on?' on':'')+'" data-act="agon" data-id="'+a.id+'" role="switch" aria-checked="'+on+'" title="Colocar online ou offline"'+(busy?' disabled':'')+'><i></i></button>':'<small style="color:var(--faint)">—</small>')+'</td>':'';
-   return'<tr'+(a.in_queue?'':' style="opacity:.6"')+'><td class="mono">'+(a.in_queue?'#'+a.queue_position:'—')+'</td><td><div class="row">'+avatar(a.name)+'<b>'+esc(a.name)+'</b></div></td><td><span class="chip"><span class="dot" style="background:'+c+'"></span>'+(a.in_queue?n:'Desativado')+'</span>'+(a.in_queue&&a.status_at?' <small style="color:var(--faint)">desde '+fDT(a.status_at)+'</small>':'')+'</td><td class="mono">'+S.leads.filter(l=>l.owner_id===a.id&&!CLOSED.includes(l.stage)).length.toLocaleString('pt-BR')+'</td><td>'+(a.is_ai?'<span class="chip gold">'+ico('spark','sm')+'Agente de IA</span>':a.user_id?'<span class="chip accent">Com login</span>':'<span class="chip warn">Sem login</span>')+'</td>'+ctl+'</tr>'};
-  return'<div class="pad" style="display:grid;gap:16px;max-width:1100px;margin:0 auto"><p style="margin:0;color:var(--muted)">Cada lead novo vai para a próxima pessoa <b>online</b> da fila, em ordem. Quem está ocupado, ausente, offline ou desativado é pulado. Cliente que volta continua com a mesma pessoa.'+(adm?' <b>Na fila</b> ativa ou desativa o consultor; <b>Online</b> liga ou desliga o recebimento agora.':' Use a chave no topo da tela para ativar ou desativar o recebimento de leads.')+'</p>'+
-   '<div class="card" style="overflow-x:auto"><table><thead><tr><th>Posição</th><th>Pessoa</th><th>Status</th><th>Leads abertos</th><th>Login</th>'+(adm?'<th>Na fila</th><th>Online</th>':'')+'</tr></thead><tbody>'+
-   q.map(row).join('')+(adm?off.map(row).join(''):'')+
-   '</tbody></table></div><p style="margin:0;color:var(--muted);font-size:12.5px">Administradores: '+S.agents.filter(a=>a.role==='admin').map(a=>esc(a.name)).join(', ')+'. Eles veem todos os leads e não entram na fila.</p></div>';
+  const adm=isAdmin(),Q=qOrder();
+  const openN=a=>S.leads.filter(l=>l.owner_id===a.id&&!CLOSED.includes(l.stage)).length;
+  const card=(a,col,i)=>{const[n,c]=STATUS[a.status||'offline'];const busy=S.busy&&S.busy[a.id];
+    return'<div class="qcard'+(busy?' busy':'')+'" data-ag="'+a.id+'"'+(adm?' draggable="true"':'')+'>'+
+      (col==='on'?'<span class="qpos mono">'+(i+1)+'º</span>':'')+avatar(a.name,'sm')+
+      '<span class="qn"><b>'+esc(a.name)+'</b><small><span class="dot" style="background:'+c+'"></span>'+(col==='off'?'Desativado':n)+' · '+openN(a).toLocaleString('pt-BR')+' abertos</small></span>'+
+      (col==='on'&&i===0?'<span class="chip accent">Próximo lead</span>':'')+
+      (adm&&col!=='off'?'<span class="qbtn"><button class="btn icon sm" data-act="qmove" data-id="'+a.id+'" data-v="-1" title="Subir na fila" aria-label="Subir">▲</button><button class="btn icon sm" data-act="qmove" data-id="'+a.id+'" data-v="1" title="Descer na fila" aria-label="Descer">▼</button></span>':'')+
+      (adm?'<button class="sw'+(col==='on'?' on':'')+'" data-act="'+(col==='off'?'agq':'agon')+'" data-id="'+a.id+'" role="switch" aria-checked="'+(col==='on')+'" title="'+(col==='off'?'Ativar na fila':'Online / offline')+'"'+(busy?' disabled':'')+'><i></i></button>':'')+'</div>'};
+  const col=(k,title,sub,list)=>'<div class="qcol" data-qcol="'+k+'"><div class="qh"><b>'+title+'</b><span class="chip">'+list.length+'</span></div><small class="qs">'+sub+'</small><div class="qlist">'+(list.map((a,i)=>card(a,k,i)).join('')||'<div class="qempty">'+(adm?'Arraste um consultor para cá':'Ninguém aqui')+'</div>')+'</div></div>';
+  return'<div class="pad" style="display:grid;gap:16px;max-width:1200px;margin:0 auto">'+
+   '<p style="margin:0;color:var(--muted)">Só quem está <b>online</b> recebe leads novos, na ordem da primeira coluna: o 1º é o próximo a receber, depois a fila gira. Cliente que volta continua com a mesma pessoa.'+(adm?' <b>Arraste</b> os cartões para mudar a ordem ou mover entre as colunas (no tablet, use ▲ ▼ e a chave).':'')+'</p>'+
+   '<div class="qboard">'+col('on','Online · recebendo','Ordem de distribuição',Q.on)+col('pause','Na fila · sem receber','Ocupado, ausente ou offline',Q.pause)+(adm?col('off','Desativados','Fora da fila',Q.off):'')+'</div>'+
+   '<p style="margin:0;color:var(--muted);font-size:12.5px">Administradores: '+S.agents.filter(a=>a.role==='admin').map(a=>esc(a.name)).join(', ')+'. Eles veem todos os leads e não entram na fila.</p></div>';
+}
+async function qApply(order,changes){
+  // order: lista completa (online na frente) com a nova sequência; changes: [{id,in_queue?,status?}]
+  if(!isAdmin())return;
+  for(const ch of changes||[]){const {error}=await sb.rpc('crm_admin_set_agent',{p_agent:ch.id,p_in_queue:ch.in_queue??null,p_status:ch.status??null});if(error){toast(error.message,true);return}}
+  const ups=order.map((a,i)=>sb.from('crm_agents').update({queue_position:i+1}).eq('id',a.id));
+  const res=await Promise.all(ups);const bad=res.find(r=>r.error);if(bad){toast(bad.error.message,true)}
+  const {error:ce}=await sb.from('crm_config').update({rr_last_position:0,updated_at:new Date().toISOString()}).eq('id',1);if(ce)toast(ce.message,true);
+  await refreshQueue();
+}
+async function refreshQueue(){const [{data:ag},{data:cf}]=await Promise.all([sb.from('crm_agents').select('*').order('queue_position',{nullsFirst:false}),sb.from('crm_config').select('rr_last_position,eligible_statuses').eq('id',1).maybeSingle()]);if(ag)S.agents=ag;if(cf)S.cfg=cf;S.me=S.agents.find(a=>a.user_id===S.session.user.id)||S.me;render()}
+async function qDrop(id,toCol,idx){
+  const Q=qOrder(),a=S.agents.find(x=>x.id===id);if(!a)return;
+  const from=Q.on.includes(a)?'on':Q.pause.includes(a)?'pause':'off';
+  const on=Q.on.filter(x=>x.id!==id),pause=Q.pause.filter(x=>x.id!==id);const changes=[];
+  if(toCol==='off'){if(from!=='off')changes.push({id,in_queue:false})}
+  else{if(from==='off')changes.push({id,in_queue:true});
+    if(toCol==='on'&&from!=='on')changes.push({id,status:'online'});
+    if(toCol==='pause'&&from==='on')changes.push({id,status:'offline'});
+    const tgt=toCol==='on'?on:pause;tgt.splice(Math.max(0,Math.min(idx,tgt.length)),0,a)}
+  S.busy=S.busy||{};S.busy[id]=1;render();
+  await qApply([...on,...pause],changes);delete S.busy[id];render();
 }
 function modal(){
   const m=S.modal;
@@ -1134,7 +1181,8 @@ document.addEventListener('click',async e=>{
   if(e.target.closest('select'))return;
   if(el.tagName==='A')e.preventDefault();
   const L=()=>S.leads.find(x=>x.id===S.sel);
-  if(a==='nav'){if(v==='inbox'&&S.view!=='inbox')S.picked=false;S.view=v;render()}
+  if(a==='nav'){if(v==='inbox'&&S.view!=='inbox')S.picked=false;S.view=v;render();if(v==='equipe')refreshQueue()}
+  else if(a==='qmove'){const Q=qOrder(),ag=S.agents.find(x=>x.id===id);const list=Q.on.includes(ag)?Q.on:Q.pause;const k=list.indexOf(ag),n=k+(+v);if(k<0||n<0||n>=list.length)return;list.splice(k,1);list.splice(n,0,ag);S.busy=S.busy||{};S.busy[id]=1;render();await qApply([...Q.on,...Q.pause]);delete S.busy[id];render()}
   else if(a==='more'){S.lim+=300;render()}
   else if(a==='qstage'){if(S.sel&&v){await moveStage(S.sel,v);render()}}
   else if(a==='open')openLead(id);
@@ -1148,7 +1196,7 @@ document.addEventListener('click',async e=>{
   else if(a==='agq'||a==='agon'){const ag=S.agents.find(x=>x.id===id);if(!ag||!isAdmin())return;S.busy=S.busy||{};S.busy[id]=1;render();
     const args=a==='agq'?{p_agent:id,p_in_queue:!ag.in_queue}:{p_agent:id,p_status:ag.status==='online'?'offline':'online'};
     const {error}=await sb.rpc('crm_admin_set_agent',args);delete S.busy[id];
-    if(error)toast(error.message,true);else{const {data}=await sb.from('crm_agents').select('*').order('queue_position',{nullsFirst:false});if(data)S.agents=data;const n=S.agents.find(x=>x.id===id);toast(a==='agq'?(n.in_queue?n.name+' ativado na fila':n.name+' desativado'):(n.status==='online'?n.name+' online':n.name+' offline'))}
+    if(error)toast(error.message,true);else{await refreshQueue();const n=S.agents.find(x=>x.id===id);toast(a==='agq'?(n.in_queue?n.name+' ativado na fila':n.name+' desativado'):(n.status==='online'?n.name+' online':n.name+' offline'))}
     render()}
   else if(a==='status'){const {error}=await sb.rpc('crm_set_status',{p_status:v});if(error)toast(error.message,true);else{S.me.status=v;render()}}
   else if(a==='prio'){const l=L();const {error}=await sb.from('crm_leads').update({priority:!l.priority}).eq('id',l.id);if(error)toast(error.message,true)}
@@ -1221,6 +1269,11 @@ document.addEventListener('dragleave',e=>{const c=e.target.closest&&e.target.clo
 document.addEventListener('drop',e=>{if(!isFileDrag(e))return;const c=e.target.closest&&e.target.closest('.pane.chat');e.preventDefault();if(c){c.classList.remove('drop');const l=S.leads.find(x=>x.id===S.sel);if(l&&!canSend(l)){toast('A janela de 24 h está fechada: envie o modelo de boas-vindas primeiro.',true);return}addFiles(e.dataTransfer.files)}});
 document.addEventListener('mousemove',e=>{const tip=document.getElementById('ctip');if(!tip)return;const g=e.target.closest&&e.target.closest('.rchart .bar');if(!g){tip.style.opacity=0;return}
   const w=tip.parentElement.getBoundingClientRect();tip.textContent=g.dataset.tip;tip.style.opacity=1;tip.style.left=Math.min(w.width-150,Math.max(0,e.clientX-w.left+12))+'px';tip.style.top=(e.clientY-w.top-34)+'px'});
+document.addEventListener('dragstart',e=>{const q=e.target.closest&&e.target.closest('.qcard[draggable]');if(q){S.qdrag=q.dataset.ag;q.classList.add('dragging');try{e.dataTransfer.setData('text/plain',S.qdrag);e.dataTransfer.effectAllowed='move'}catch(x){}}});
+function qIndex(col,y){const cards=[...col.querySelectorAll('.qcard:not(.dragging)')];let i=0;for(const c of cards){const r=c.getBoundingClientRect();if(y>r.top+r.height/2)i++}return{i,cards}}
+document.addEventListener('dragover',e=>{if(!S.qdrag)return;const col=e.target.closest&&e.target.closest('.qcol');document.querySelectorAll('.qcol.over').forEach(x=>x!==col&&x.classList.remove('over'));document.querySelectorAll('.qcard.ins,.qcard.insa').forEach(x=>x.classList.remove('ins','insa'));if(!col)return;e.preventDefault();col.classList.add('over');const {i,cards}=qIndex(col,e.clientY);if(cards[i])cards[i].classList.add('ins');else if(cards.length)cards[cards.length-1].classList.add('insa')});
+document.addEventListener('drop',e=>{if(!S.qdrag)return;const col=e.target.closest&&e.target.closest('.qcol');const id=S.qdrag;S.qdrag=null;document.querySelectorAll('.qcol.over').forEach(x=>x.classList.remove('over'));if(!col)return render();e.preventDefault();const {i}=qIndex(col,e.clientY);qDrop(id,col.dataset.qcol,i)});
+document.addEventListener('dragend',()=>{if(S.qdrag){S.qdrag=null;render()}});
 document.addEventListener('dragstart',e=>{const c=e.target.closest&&e.target.closest('.kc');if(c){S.drag=c.dataset.lead;try{e.dataTransfer.setData('text/plain',S.drag)}catch(x){}}});
 document.addEventListener('dragover',e=>{const c=e.target.closest&&e.target.closest('.col');if(c&&S.drag){e.preventDefault();document.querySelectorAll('.col.over').forEach(x=>x!==c&&x.classList.remove('over'));c.classList.add('over')}});
 document.addEventListener('drop',async e=>{const c=e.target.closest&&e.target.closest('.col');if(!c||!S.drag)return;e.preventDefault();const id=S.drag;S.drag=null;c.classList.remove('over');await moveStage(id,c.dataset.stage);render()});
