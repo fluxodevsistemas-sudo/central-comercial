@@ -184,6 +184,11 @@ textarea.inp{resize:vertical}
 .bub.fail{border:1px solid var(--crit)}
 .meta{display:flex;gap:6px;justify-content:flex-end;font-size:10.5px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
 .composer{background:var(--surface);border-top:1px solid var(--line);padding:10px 16px 14px;display:grid;gap:9px}
+.stagebar{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:1px 0}.stagebar::-webkit-scrollbar{display:none}
+.stg{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface-3);color:var(--muted);border-radius:999px;padding:6px 11px;font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,color .15s}
+.stg:hover{color:var(--ink,inherit);border-color:var(--sc)}
+.stg.on{background:color-mix(in srgb,var(--sc) 18%,transparent);border-color:var(--sc);color:inherit;font-weight:600}
+@media (pointer:coarse){.stg{padding:9px 14px;font-size:13.5px}}
 .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .winfo{font-size:12px;display:inline-flex;gap:6px;align-items:center}
 /* lumi strip in chat */
@@ -498,6 +503,7 @@ const SUPABASE_URL='https://nxdyfalatzyteuapdpei.supabase.co';
 const SUPABASE_KEY='sb_publishable_l9ZbAf74UtwCXjMSPO7H5w_qvV_SvBH';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
 
+const LUMI_ON=false; // Lumi (IA) desativada por enquanto: mude para true para religar
 const STAGES=[['primeiro','Primeiro atendimento','#3C6E9E'],['qualificacao','Qualificação','#5B7FB8'],['frio','Lead frio','#8D9792'],['quente','Lead quente','#E07A1F'],['call','Call','#0E8C9C'],['negociacao','Em negociação','#B7791F'],['followup','Follow-up','#6B5BB8'],['ganho','Ganho','#1F8A5B'],['perdido','Perdido','#C0432F']];
 const ST=Object.fromEntries(STAGES.map(s=>[s[0],{name:s[1],c:s[2]}]));
 const STATUS={online:['Online','#2FB37A'],ocupado:['Ocupado','#E0A84A'],ausente:['Ausente','#7FA3CF'],offline:['Offline','#77817C']};
@@ -762,12 +768,12 @@ function shell(){
   if(!S.me)return'<div class="login"><div class="card"><h1>Sem acesso ao CRM</h1><p class="muted">Seu login existe, mas ainda não foi incluído na equipe da Central Comercial. Peça ao administrador.</p><button class="btn" data-act="logout">Sair</button></div></div>';
   const vis=visible();const unread=vis.filter(l=>l.unread).length;
   const alerts=vis.filter(l=>S.ins[l.id]&&S.ins[l.id].risk_level==='alto'&&!CLOSED.includes(l.stage)).length;
-  const navs=[['inbox','Caixa de entrada','chat',unread],['funil',isAdmin()?'Funil':'Meu funil','kanban',0],['lumi','Lumi · IA','spark',alerts],['rel','Relatórios','chart',0],['equipe','Equipe','users',0]];
+  const navs=[['inbox','Caixa de entrada','chat',unread],['funil',isAdmin()?'Funil':'Meu funil','kanban',0],...(LUMI_ON?[['lumi','Lumi · IA','spark',alerts]]:[]),['rel','Relatórios','chart',0],['equipe','Equipe','users',0]];
   const nav=navs.map(([v,n,i,c])=>'<button class="nav-item'+(S.view===v?' on':'')+'" data-act="nav" data-v="'+v+'" title="'+n+'">'+ico(i)+'<span class="t">'+n+'</span>'+(c?'<span class="count'+(v==='lumi'?' gold':'')+'">'+c+'</span>':'')+'</button>').join('');
   const st=S.me.status||'offline';
   const statusBtns=S.me.in_queue?'<div class="status">'+Object.entries(STATUS).map(([k,[n,c]])=>'<button data-act="status" data-v="'+k+'" title="'+n+'" class="'+(st===k?'on':'')+'"><span class="dot" style="background:'+c+'"></span><span class="t">'+n+'</span></button>').join('')+'</div>':'';
   const on=lumiOn();
-  const lumiCard='<button class="lumicard" data-act="nav" data-v="lumi">'+brain(48,!on)+'<div class="t"><b>Lumi <span class="live'+(on?'':' off')+'"></span></b><small>'+(on?'Analisando conversas 24 h · '+(S.ai.total_today||0)+' análises hoje':'Aguardando ativação da IA')+'</small></div></button>';
+  const lumiCard=!LUMI_ON?'':'<button class="lumicard" data-act="nav" data-v="lumi">'+brain(48,!on)+'<div class="t"><b>Lumi <span class="live'+(on?'':' off')+'"></span></b><small>'+(on?'Analisando conversas 24 h · '+(S.ai.total_today||0)+' análises hoje':'Aguardando ativação da IA')+'</small></div></button>';
   const titles={inbox:['Caixa de entrada',isAdmin()?'Todas as conversas do número de vendas':'Suas conversas'],funil:[isAdmin()?'Funil comercial':'Meu funil','Arraste os cartões entre as etapas'],lumi:['Lumi','Inteligência comercial que acompanha as conversas 24 horas'],rel:['Relatórios','Leads que chegam por dia, por consultor e por planilha'],equipe:['Equipe','Fila automática de distribuição']};
   const [h,sub]=titles[S.view];
   const ownerSel=isAdmin()&&S.view!=='equipe'?'<select class="inp sm" id="ownerf" data-change="owner" style="width:auto" aria-label="Filtrar por consultor"><option value="all">Todos os consultores</option>'+S.agents.filter(a=>a.in_queue).map(a=>'<option value="'+a.id+'"'+(S.owner===a.id?' selected':'')+'>'+esc(a.name)+'</option>').join('')+'<option value="none"'+(S.owner==='none'?' selected':'')+'>Sem responsável</option></select>':'';
@@ -809,8 +815,9 @@ function inbox(){
    '<div class="seg">'+[['abertas','Abertas'],['hoje','Hoje · '+visible().filter(l=>dayKey(l.created_at)===dayKey(new Date())).length],['naolidas','Não lidas'],['aguardando','Aguardando'],['quentes','Quentes'],['encerradas','Encerradas']].map(([k,n])=>'<button data-act="filter" data-v="'+k+'" class="'+(S.filter===k?'on':'')+'">'+n+'</button>').join('')+'</div>'+
    '<div class="muted" style="font-size:11.5px">'+L.length.toLocaleString('pt-BR')+' conversas</div></div>'+
    '<div class="convs" data-keep="convs">'+(L.slice(0,300).map(convItem).join('')||'<div class="empty"><b>Nenhuma conversa</b><span>Quando um cliente chamar o número de vendas e cair com você, a conversa aparece aqui.</span></div>')+'</div></div>'+
-   (sel?chat(sel)+ficha(sel):'<div class="pane chat"><div class="empty" style="margin:auto">'+brain(110,!lumiOn())+'<b>Selecione uma conversa</b><span>A Lumi mostra a análise e as sugestões de resposta assim que você abrir um cliente.</span></div></div><div class="pane crm"></div>')+'</div>';
+   (sel?chat(sel)+ficha(sel):'<div class="pane chat"><div class="empty" style="margin:auto">'+(LUMI_ON?brain(110,!lumiOn()):'')+'<b>Selecione uma conversa</b><span>'+(LUMI_ON?'A Lumi mostra a análise e as sugestões de resposta assim que você abrir um cliente.':'Escolha um cliente na lista para ver a conversa e responder.')+'</span></div></div><div class="pane crm"></div>')+'</div>';
 }
+function stageBar(l){return'<div class="stagebar" role="group" aria-label="Mudar etapa do funil">'+STAGES.map(([k,n,c])=>'<button class="stg'+(l.stage===k?' on':'')+'" data-act="qstage" data-v="'+k+'" style="--sc:'+c+'"'+(l.stage===k?' aria-current="true"':'')+'><span class="dot" style="background:'+c+'"></span>'+n+'</button>').join('')+'</div>'}
 function lumiStrip(l){
   const i=S.ins[l.id],busy=S.busy[l.id];
   const conv=S.msgs.filter(m=>m.direction!=='note'),lastAny=conv[conv.length-1],lastIn=[...conv].reverse().find(m=>m.direction==='in');
@@ -837,7 +844,7 @@ function chat(l){
   return'<div class="pane chat"><div class="chead"><button class="btn sm back" data-act="back" aria-label="Voltar">'+ico('back','sm')+'</button>'+avatar(l.name||l.phone)+'<div class="who"><b>'+esc(l.name||'Cliente sem nome')+'</b><span>'+phone(l.phone)+'</span></div>'+
    '<select class="inp sm" id="stagesel" data-change="stage" style="width:auto" aria-label="Etapa do funil">'+STAGES.map(s=>'<option value="'+s[0]+'"'+(l.stage===s[0]?' selected':'')+'>'+s[1]+'</option>').join('')+'</select><button class="btn sm fichabtn" data-act="togglecrm">'+ico('panel','sm')+'<span class="t">Ficha</span></button></div>'+
    '<div class="msgs" data-keep="msgs">'+(body||'<div class="empty" style="margin:auto"><b>Sem mensagens ainda</b><span>Quando o número de vendas estiver conectado, a conversa aparece aqui.</span></div>')+'</div>'+
-   (mine?'<div class="composer">'+(S.mode==='out'&&!S.files.length&&!S.rec?lumiStrip(l):'')+'<div class="bar"><div class="seg">'+[['out','Responder'],['note','Nota interna']].map(([k,n])=>'<button data-act="mode" data-v="'+k+'" class="'+(S.mode===k?'on':'')+'">'+n+'</button>').join('')+'</div>'+
+   (mine?'<div class="composer">'+(LUMI_ON&&S.mode==='out'&&!S.files.length&&!S.rec?lumiStrip(l):'')+(S.mode==='out'&&!S.rec?stageBar(l):'')+'<div class="bar"><div class="seg">'+[['out','Responder'],['note','Nota interna']].map(([k,n])=>'<button data-act="mode" data-v="'+k+'" class="'+(S.mode===k?'on':'')+'">'+n+'</button>').join('')+'</div>'+
    '<span class="winfo" style="color:'+(open?'var(--good)':'var(--warn)')+'">'+(viaWa&&!metaCh?ico('chat','sm')+'Enviando pelo WhatsApp de '+esc(S.chan.consultor):ico('clock','sm')+(viaWa?'WhatsApp de '+esc(S.chan.consultor)+' · ':'')+(open?'Janela de 24 h aberta · '+Math.floor(left/H)+' h '+Math.floor(left%H/6e4)+' min':'Janela de 24 h fechada'+(viaWa?' · aguarde o cliente responder':' · só modelo aprovado')))+'</span></div>'+
    (S.mode==='out'&&!open&&metaCh?'<div class="bar"><span style="font-size:12.5px;color:var(--muted)">Este cliente fala com o número oficial de '+esc(S.chan.consultor)+'. Fora da janela de 24 h, só é possível responder quando ele mandar mensagem.</span></div>':
    S.mode==='out'&&!open?'<div class="bar"><button class="btn pri" data-act="template">'+ico('send','sm')+'Enviar modelo de boas-vindas</button><span style="font-size:12px;color:var(--muted)">Quando o cliente responder, a janela abre e você conversa normalmente.</span></div>':
@@ -1019,6 +1026,7 @@ document.addEventListener('click',async e=>{
   if(el.tagName==='A')e.preventDefault();
   const L=()=>S.leads.find(x=>x.id===S.sel);
   if(a==='nav'){S.view=v;render()}
+  else if(a==='qstage'){if(S.sel&&v){await moveStage(S.sel,v);render()}}
   else if(a==='open')openLead(id);
   else if(a==='back'){S.sel=null;render()}
   else if(a==='filter'){S.filter=v;render()}
