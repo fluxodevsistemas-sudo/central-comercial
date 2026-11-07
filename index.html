@@ -646,11 +646,11 @@ async function openLead(id){
   if(S.rec)stopRec(false);S.files.forEach(f=>f.url&&URL.revokeObjectURL(f.url));S.files=[];Object.values(S.mnodes).forEach(n=>{try{n.querySelector('audio,video')?.pause()}catch(e){}});S.mnodes={};S.mfail={};S.chan=null;S.sel=id;S.view='inbox';S.showCrm=false;S.draft='';S.mode='out';S.msgs=[];S.hist=[];render();
   if(S.msgChan){sb.removeChannel(S.msgChan);S.msgChan=null}
   const [{data:m},{data:a},{data:h}]=await Promise.all([
-    sb.from('crm_messages').select('*').eq('lead_id',id).order('created_at').limit(1000),
+    sb.from('crm_messages').select('*').eq('lead_id',id).order('created_at',{ascending:false}).limit(1000),
     sb.from('crm_assignments').select('*').eq('lead_id',id).order('created_at',{ascending:false}),
     sb.from('crm_stage_history').select('*').eq('lead_id',id).order('created_at',{ascending:false})]);
   if(S.sel!==id)return;
-  S.msgs=m||[];S.hist=[...(a||[]).map(x=>({...x,k:'a'})),...(h||[]).map(x=>({...x,k:'s'}))].sort((x,y)=>t(y.created_at)-t(x.created_at));
+  S.msgs=(m||[]).reverse();S.hist=[...(a||[]).map(x=>({...x,k:'a'})),...(h||[]).map(x=>({...x,k:'s'}))].sort((x,y)=>t(y.created_at)-t(x.created_at));
   S.msgChan=sb.channel('msgs-'+id).on('postgres_changes',{event:'*',schema:'public',table:'crm_messages',filter:'lead_id=eq.'+id},p=>{
     const i=S.msgs.findIndex(x=>x.id===p.new.id);if(i>=0)S.msgs[i]=p.new;else S.msgs.push(p.new);S.scroll=true;schedule()}).subscribe();
   S.scroll=true;render();
