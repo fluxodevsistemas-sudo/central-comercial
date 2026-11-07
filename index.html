@@ -654,7 +654,9 @@ function toast(m,err){const e=document.createElement('div');e.className='toast'+
 function agentName(id){const a=S.agents.find(x=>x.id===id);return a?a.name:'Sem responsável'}
 const firstName=n=>String(n||'').trim().split(/\s+/)[0]||'';
 const isAdmin=()=>S.me&&S.me.role==='admin';
-const windowOpen=l=>l&&l.last_in_at&&Date.now()-t(l.last_in_at)<24*H;
+// Janela de 24 h do número oficial: conta só mensagens que o cliente mandou para o número da empresa (não as do WhatsApp do consultor)
+function lastCloudIn(l){if(l&&l.id===S.sel&&S.msgs.length){for(let i=S.msgs.length-1;i>=0;i--){const m=S.msgs[i];if(m.direction==='in'&&m.source!=='zapi')return m.created_at}return null}return l&&l.last_in_at}
+const windowOpen=l=>{const x=lastCloudIn(l);return !!(l&&x&&Date.now()-t(x)<24*H)};
 const waiting=l=>t(l.last_in_at)>t(l.last_out_at)&&!CLOSED.includes(l.stage);
 const canSend=l=>!!l&&((S.chan&&S.chan.ok&&S.chan.provider!=='meta')||windowOpen(l));
 const lumiOn=()=>S.ai&&S.ai.last_scan_at&&Date.now()-t(S.ai.last_scan_at)<15*6e4;
@@ -939,7 +941,7 @@ function chat(l){
     h+='<div data-k="m'+m.id+'" class="bub '+cls+(m.status==='failed'?' fail':'')+(m.media_path||MEDIA_T.includes(m.msg_type)?' media':'')+'">'+(m.direction==='note'?'<div style="font-size:11px;font-weight:600;color:var(--warn)">Nota interna · '+esc(agentName(m.sent_by))+'</div>':'')+mediaHtml(m)+(m.body&&!(MEDIA_T.includes(m.msg_type)&&/^\[[^\]]{2,20}\]$/.test(m.body.trim()))?'<div class="btx">'+esc(m.body)+'</div>':((m.media_path||MEDIA_T.includes(m.msg_type))?'':esc('['+m.msg_type+']')))+
       '<div class="meta">'+(m.source==='zapi'?'<span title="Mensagem do WhatsApp do consultor">WhatsApp do consultor</span> · ':'')+(m.direction==='out'&&isAdmin()&&m.sent_by?esc(agentName(m.sent_by))+' · ':'')+fDT(m.created_at)+(m.direction==='out'?' · '+({sending:'enviando…',sent:'enviada',delivered:'entregue',read:'lida',failed:'falhou'}[m.status]||''):'')+'</div>'+(m.error?'<div style="color:var(--crit);font-size:11.5px">'+esc(m.error)+'</div>':'')+'</div>';return h}).join('');
   const viaWa=S.chan&&S.chan.ok,metaCh=viaWa&&S.chan.provider==='meta';
-  const open=canSend(l);const left=windowOpen(l)?24*H-(Date.now()-t(l.last_in_at)):0;
+  const open=canSend(l);const left=windowOpen(l)?24*H-(Date.now()-t(lastCloudIn(l))):0;
   const mine=isAdmin()||l.owner_id===S.me.id;
   return'<div class="pane chat"><div class="chead"><button class="btn sm back" data-act="back" aria-label="Voltar">'+ico('back','sm')+'</button>'+avatar(l.name||l.phone)+'<div class="who"><b>'+esc(l.name||'Cliente sem nome')+'</b><span>'+phone(l.phone)+'</span></div>'+
    '<select class="inp sm" id="stagesel" data-change="stage" style="width:auto" aria-label="Etapa do funil">'+STAGES.map(s=>'<option value="'+s[0]+'"'+(l.stage===s[0]?' selected':'')+'>'+s[1]+'</option>').join('')+'</select><button class="btn sm fichabtn" data-act="togglecrm">'+ico('panel','sm')+'<span class="t">Ficha</span></button></div>'+
