@@ -457,7 +457,7 @@ tr:last-child td{border-bottom:0}
 .ddb:hover,.dd.open .ddb{border-color:var(--line-strong);background:var(--surface-2)}.ddb.act{border-color:var(--accent-line);background:var(--accent-soft)}
 .ddb>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}.ddc{color:var(--muted);flex:none;transition:transform .15s}.dd.open .ddc{transform:rotate(180deg)}
 .ddx{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;color:var(--muted)}.ddx:hover{background:var(--surface-3);color:var(--ink)}
-.ddm{position:absolute;right:0;top:calc(100% + 6px);z-index:60;width:300px;max-width:calc(100vw - 24px);background:var(--surface);border:1px solid var(--line-strong);border-radius:14px;box-shadow:0 18px 48px rgba(0,0,0,.35);overflow:hidden;animation:ddin .12s ease-out}
+.ddm{position:absolute;right:0;top:calc(100% + 6px);z-index:60;width:300px;max-width:calc(100vw - 24px);background:var(--surface);border:1px solid var(--line-strong);border-radius:14px;box-shadow:0 18px 48px rgba(0,0,0,.35);overflow:hidden;}
 @keyframes ddin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .dds{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);color:var(--muted)}.dds .inp{border:0;background:none;padding:4px 0;height:auto;box-shadow:none}
 .ddl{max-height:min(420px,60vh);overflow:auto;padding:6px}
@@ -469,6 +469,8 @@ tr:last-child td{border-bottom:0}
 .avatar.xs{width:20px;height:20px;font-size:9px}
 @media (pointer:coarse){.ddb{height:40px}.ddo{padding:11px 10px}}
 @media (max-width:720px){.ddm{position:fixed;left:12px;right:12px;top:auto;bottom:12px;width:auto}}
+.fmhint{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;font-size:12.5px;color:var(--muted);background:var(--warn-soft);border-radius:10px;padding:8px 12px}
+.fmhint>svg{color:var(--warn);flex:none}.fmhint>span:first-of-type{flex:1;min-width:220px}.fmhint i{font-style:normal;color:var(--ink)}.fmq{display:flex;gap:6px}
 /* ---------- responsivo ---------- */
 @media (max-width:1440px){.inbox{grid-template-columns:310px minmax(0,1fr) 340px}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media (max-width:1320px){.kpis{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}.grid2{grid-template-columns:1fr}.grid2>.card{height:auto;max-height:520px}}
@@ -539,6 +541,7 @@ tr:last-child td{border-bottom:0}
 <input type="file" id="filepick" multiple hidden>
 <div class="toasts" id="toasts"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="vendor/morphdom-umd.min.js"></script>
 <script>
 (function(){
 "use strict";
@@ -686,6 +689,7 @@ function subscribe(){
 }
 function notify(l){try{if(document.hidden&&'Notification' in window&&Notification.permission==='granted')new Notification('Central Comercial',{body:(l.name||phone(l.phone))+': '+(l.last_msg||'nova mensagem')})}catch(e){}}
 async function openLead(id){
+  S.stick=true;
   if(S.rec)stopRec(false);S.files.forEach(f=>f.url&&URL.revokeObjectURL(f.url));S.files=[];Object.values(S.mnodes).forEach(n=>{try{n.querySelector('audio,video')?.pause()}catch(e){}});S.mnodes={};S.mfail={};S.chan=null;S.sel=id;S.view='inbox';S.showCrm=false;S.draft='';S.mode='out';S.msgs=[];S.hist=[];render();
   if(S.msgChan){sb.removeChannel(S.msgChan);S.msgChan=null}
   const [{data:m},{data:a},{data:h}]=await Promise.all([
@@ -695,7 +699,7 @@ async function openLead(id){
   if(S.sel!==id)return;
   S.msgs=(m||[]).reverse();S.hist=[...(a||[]).map(x=>({...x,k:'a'})),...(h||[]).map(x=>({...x,k:'s'}))].sort((x,y)=>t(y.created_at)-t(x.created_at));
   S.msgChan=sb.channel('msgs-'+id).on('postgres_changes',{event:'*',schema:'public',table:'crm_messages',filter:'lead_id=eq.'+id},p=>{
-    let i=S.msgs.findIndex(x=>x.id===p.new.id||(p.new.wamid&&x.wamid===p.new.wamid&&String(x.id).startsWith('tmp-')));if(i<0&&p.new.media_path)i=S.msgs.findIndex(x=>x.pending&&x.pending===p.new.media_path);if(i<0&&p.new.direction==='out'&&!p.new.media_path)i=S.msgs.findIndex(x=>String(x.id).startsWith('tmp-')&&x.status==='sending'&&!x.local_url&&x.body===p.new.body);if(i>=0){const lu=S.msgs[i].local_url,oid=S.msgs[i].id;S.msgs[i]=lu?{...p.new,local_url:lu}:p.new;if(lu&&S.mnodes[oid]){S.mnodes[p.new.id]=S.mnodes[oid];delete S.mnodes[oid]}}else S.msgs.push(p.new);S.scroll=true;schedule()}).subscribe();
+    let i=S.msgs.findIndex(x=>x.id===p.new.id||(p.new.wamid&&x.wamid===p.new.wamid&&String(x.id).startsWith('tmp-')));if(i<0&&p.new.media_path)i=S.msgs.findIndex(x=>x.pending&&x.pending===p.new.media_path);if(i<0&&p.new.direction==='out'&&!p.new.media_path)i=S.msgs.findIndex(x=>String(x.id).startsWith('tmp-')&&x.status==='sending'&&!x.local_url&&x.body===p.new.body);if(i>=0){const lu=S.msgs[i].local_url,oid=S.msgs[i].id;S.msgs[i]=lu?{...p.new,local_url:lu}:p.new;if(lu&&S.mnodes[oid]){S.mnodes[p.new.id]=S.mnodes[oid];delete S.mnodes[oid]}}else S.msgs.push(p.new);if(S.stick)S.scroll=true;schedule()}).subscribe();
   S.scroll=true;render();
   // Sem limite: as mensagens mais antigas chegam em segundo plano, de 1000 em 1000, sem tirar a pessoa do lugar
   if((m||[]).length===1000)(async()=>{for(let i=1000;;i+=1000){const {data:o,error}=await sb.from('crm_messages').select('*').eq('lead_id',id).order('created_at',{ascending:false}).range(i,i+999);
@@ -828,11 +832,15 @@ async function startRec(){
 function stopRec(send){const rec=S.rec;if(!rec)return;rec.send=send;if(!rec.r){S.rec=null;render();return}try{rec.r.stop()}catch(e){S.rec=null;render()}}
 
 /* ---------- render ---------- */
-let raf=0;function schedule(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;render()})}
+const INF=new WeakSet();let raf=0;function schedule(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;render()})}
 function render(){
   const ae=document.activeElement,id=ae&&ae.id,ss=ae&&ae.selectionStart,se=ae&&ae.selectionEnd,val=ae&&id&&/INPUT|TEXTAREA/.test(ae.tagName)?ae.value:null;
   const keep={};document.querySelectorAll('[data-keep]').forEach(e=>keep[e.dataset.keep]=e.scrollTop);
-  $('#app').innerHTML=shell();
+  const html=shell(),app=$('#app');
+  if(window.morphdom&&app.firstElementChild){const nx=document.createElement('div');nx.id='app';nx.innerHTML=html;
+    morphdom(app,nx,{getNodeKey:n=>n.nodeType===1?(n.id||n.getAttribute('data-k')||undefined):undefined,
+      onBeforeElUpdated:(f,t)=>{if(f.hasAttribute&&f.hasAttribute('data-mslot')&&f.getAttribute('data-src')===t.getAttribute('data-src'))return false;if(f.tagName==='IMG'&&f.getAttribute('src')===t.getAttribute('src')&&f.className===t.className)return false;return !f.isEqualNode(t)}})}
+  else app.innerHTML=html;
   document.querySelectorAll('[data-keep]').forEach(e=>{if(keep[e.dataset.keep]!=null)e.scrollTop=keep[e.dataset.keep]});
   if(id){const e=document.getElementById(id);if(e){const own=id==='composer'&&e.value!==val;if(val!=null&&!own)e.value=val;e.focus();try{own?e.setSelectionRange(e.value.length,e.value.length):e.setSelectionRange(ss,se)}catch(x){}}}
   document.querySelectorAll('[data-mslot]').forEach(slot=>{const id=slot.dataset.mslot,src=slot.dataset.src,k=slot.dataset.kind;let n=S.mnodes[id];
@@ -840,11 +848,11 @@ function render(){
       if(k==='audio'){n.innerHTML='<audio class="maud" controls preload="metadata"></audio><button class="speed" data-act="speed" data-id="'+id+'" title="Velocidade">1x</button>';n.querySelector('audio').src=src;n.querySelector('audio').playbackRate=S.rate}
       else{n.innerHTML='<video class="mvid" controls preload="metadata"></video>';n.querySelector('video').src=src}
       S.mnodes[id]=n}
-    slot.appendChild(n)});
-  const m=document.querySelector('.msgs');if(m&&S.scroll){m.scrollTop=m.scrollHeight;S.scroll=false}
+    if(n.parentNode!==slot)slot.appendChild(n)});
+  const m=document.querySelector('.msgs');if(m&&(S.scroll||S.stick)){m.scrollTop=m.scrollHeight;S.scroll=false}
   $('#modal').innerHTML=S.modal?modal():'';
   if(S.view==='inbox'&&!S.sel&&!S.picked&&S.list&&S.list.length&&innerWidth>720){S.picked=true;const f=S.list[0].id;setTimeout(()=>{if(!S.sel)openLead(f)},0)}
-  const cv=document.querySelector('.convs');if(cv&&!cv.dataset.inf){cv.dataset.inf=1;cv.addEventListener('scroll',()=>{if(S.list&&S.lim<S.list.length&&cv.scrollTop+cv.clientHeight>cv.scrollHeight-600){S.lim+=300;schedule()}},{passive:true})}
+  const cv=document.querySelector('.convs');if(cv&&!INF.has(cv)){INF.add(cv);cv.addEventListener('scroll',()=>{if(S.list&&S.lim<S.list.length&&cv.scrollTop+cv.clientHeight>cv.scrollHeight-600){S.lim+=300;schedule()}},{passive:true})}
 }
 function shell(){
   if(S.loading)return'<div class="login"><div class="empty">'+brain(110)+'<b>Carregando a Central…</b></div></div>';
@@ -888,7 +896,7 @@ function tempBadge(l){const i=S.ins[l.id];if(!i||!i.temperature)return'';return'
 function convItem(l){
   const silent=t(l.last_out_at)>t(l.last_in_at)&&!CLOSED.includes(l.stage)?(Date.now()-t(l.last_out_at))/H:0;
   const i=S.ins[l.id];
-  return'<button class="conv'+(S.sel===l.id?' on':'')+(l.unread?' unread':'')+'" data-act="open" data-id="'+l.id+'">'+avatar(l.name||l.phone)+'<div class="cbody"><div class="ctop"><b>'+esc(l.name||phone(l.phone))+'</b>'+tempBadge(l)+'<span class="ctime">'+fTime(l.last_msg_at)+'</span></div>'+
+  return'<button class="conv'+(S.sel===l.id?' on':'')+(l.unread?' unread':'')+'" data-k="c'+l.id+'" data-act="open" data-id="'+l.id+'">'+avatar(l.name||l.phone)+'<div class="cbody"><div class="ctop"><b>'+esc(l.name||phone(l.phone))+'</b>'+tempBadge(l)+'<span class="ctime">'+fTime(l.last_msg_at)+'</span></div>'+
   '<div class="row" style="flex-wrap:nowrap"><span class="cmsg">'+esc(l.last_msg||'')+'</span>'+(l.unread?'<span class="badge">'+l.unread+'</span>':'')+'</div>'+
   '<div class="row" style="gap:5px"><span class="chip"><span class="dot" style="background:'+ST[l.stage].c+'"></span>'+ST[l.stage].name+'</span>'+tagChips(l)+(isAdmin()?'<span class="chip">'+esc(agentName(l.owner_id))+'</span>':'')+(waiting(l)?'<span class="chip warn">Aguardando resposta</span>':'')+(silent>=24?'<span class="chip crit">'+Math.floor(silent)+' h sem retorno</span>':'')+(i&&i.risk_level==='alto'&&!CLOSED.includes(l.stage)?'<span class="chip crit">'+ico('alert','sm')+'Risco</span>':'')+(l.priority?'<span class="chip crit">Prioridade</span>':'')+'</div></div></button>';
 }
@@ -928,7 +936,7 @@ function lumiStrip(l){
 function chat(l){
   let last='';const body=S.msgs.map(m=>{let h='';const d=fD(m.created_at);if(d!==last){last=d;h+='<div class="day">'+dayLabel(m.created_at)+'</div>'}
     const cls=m.direction==='in'?'in':m.direction==='note'?'note':'out';
-    h+='<div class="bub '+cls+(m.status==='failed'?' fail':'')+(m.media_path||MEDIA_T.includes(m.msg_type)?' media':'')+'">'+(m.direction==='note'?'<div style="font-size:11px;font-weight:600;color:var(--warn)">Nota interna · '+esc(agentName(m.sent_by))+'</div>':'')+mediaHtml(m)+(m.body&&!(MEDIA_T.includes(m.msg_type)&&/^\[[^\]]{2,20}\]$/.test(m.body.trim()))?'<div class="btx">'+esc(m.body)+'</div>':((m.media_path||MEDIA_T.includes(m.msg_type))?'':esc('['+m.msg_type+']')))+
+    h+='<div data-k="m'+m.id+'" class="bub '+cls+(m.status==='failed'?' fail':'')+(m.media_path||MEDIA_T.includes(m.msg_type)?' media':'')+'">'+(m.direction==='note'?'<div style="font-size:11px;font-weight:600;color:var(--warn)">Nota interna · '+esc(agentName(m.sent_by))+'</div>':'')+mediaHtml(m)+(m.body&&!(MEDIA_T.includes(m.msg_type)&&/^\[[^\]]{2,20}\]$/.test(m.body.trim()))?'<div class="btx">'+esc(m.body)+'</div>':((m.media_path||MEDIA_T.includes(m.msg_type))?'':esc('['+m.msg_type+']')))+
       '<div class="meta">'+(m.source==='zapi'?'<span title="Mensagem do WhatsApp do consultor">WhatsApp do consultor</span> · ':'')+(m.direction==='out'&&isAdmin()&&m.sent_by?esc(agentName(m.sent_by))+' · ':'')+fDT(m.created_at)+(m.direction==='out'?' · '+({sending:'enviando…',sent:'enviada',delivered:'entregue',read:'lida',failed:'falhou'}[m.status]||''):'')+'</div>'+(m.error?'<div style="color:var(--crit);font-size:11.5px">'+esc(m.error)+'</div>':'')+'</div>';return h}).join('');
   const viaWa=S.chan&&S.chan.ok,metaCh=viaWa&&S.chan.provider==='meta';
   const open=canSend(l);const left=windowOpen(l)?24*H-(Date.now()-t(l.last_in_at)):0;
@@ -939,10 +947,10 @@ function chat(l){
    (mine?'<div class="composer">'+(LUMI_ON&&S.mode==='out'&&!S.files.length&&!S.rec?lumiStrip(l):'')+(S.mode==='out'&&!S.rec?stageBar(l):'')+'<div class="bar"><div class="seg">'+[['out','Responder'],['note','Nota interna']].map(([k,n])=>'<button data-act="mode" data-v="'+k+'" class="'+(S.mode===k?'on':'')+'">'+n+'</button>').join('')+'</div>'+
    '<span class="winfo" style="color:'+(open?'var(--good)':'var(--warn)')+'">'+(viaWa&&!metaCh?ico('chat','sm')+'Enviando pelo WhatsApp de '+esc(S.chan.consultor):ico('clock','sm')+(viaWa?'WhatsApp de '+esc(S.chan.consultor)+' · ':'')+(open?'Janela de 24 h aberta · '+Math.floor(left/H)+' h '+Math.floor(left%H/6e4)+' min':'Janela de 24 h fechada'+(viaWa?' · aguarde o cliente responder':' · só modelo aprovado')))+'</span></div>'+
    (S.mode==='out'&&!open&&metaCh?'<div class="bar"><span style="font-size:12.5px;color:var(--muted)">Este cliente fala com o número oficial de '+esc(S.chan.consultor)+'. Fora da janela de 24 h, só é possível responder quando ele mandar mensagem.</span></div>':
-   S.mode==='out'&&!open?'<div class="bar" style="flex-wrap:wrap"><button class="btn pri" data-act="template" data-v="primeiro_contato_consultor"'+(S.sending?' disabled':'')+'>'+ico('send','sm')+'Enviar primeira mensagem</button><button class="btn" data-act="template" data-v="boas_vindas_lead"'+(S.sending?' disabled':'')+'>Boas-vindas</button><span style="font-size:12px;color:var(--muted);flex-basis:100%">“Olá '+esc((l.name||'').split(' ')[0]||'…')+'! Aqui é '+esc(firstName(agentName(l.owner_id&&l.owner_id!==S.me.id?l.owner_id:S.me.id)))+', do Grupo 3 Amores…” · Quando o cliente responder, a janela de 24 h abre e você conversa normalmente.</span></div>':
+   (S.mode==='out'&&!open?'<div class="fmhint">'+ico('clock','sm')+'<span>Janela de 24 h fechada: escreva abaixo e sua mensagem sai dentro do modelo aprovado — <i>“Olá '+esc(firstName(l.name)||'…')+'! Aqui é '+esc(firstName(agentName(l.owner_id&&l.owner_id!==S.me.id?l.owner_id:S.me.id)))+', do Grupo 3 Amores. <b>sua mensagem</b> Fico à disposição por aqui.”</i></span><span class="fmq"><button class="btn sm" data-act="template" data-v="primeiro_contato_consultor"'+(S.sending?' disabled':'')+'>Mensagem pronta</button><button class="btn sm" data-act="template" data-v="boas_vindas_lead"'+(S.sending?' disabled':'')+'>Boas-vindas</button></span></div>':'')+
    (S.mode==='out'&&S.files.length?trayHtml():'')+
-   (S.rec?recHtml():'<textarea class="inp" id="composer" rows="2" placeholder="'+(S.mode==='out'?(S.files.length?'Legenda (opcional) para o primeiro arquivo':(LUMI_ON?'Escreva a mensagem, arraste arquivos aqui ou clique numa sugestão da Lumi · Enter envia, Shift+Enter quebra linha':'Escreva a mensagem ou arraste arquivos aqui · Enter envia, Shift+Enter quebra linha')):'Nota interna, só a equipe vê')+'" data-input="draft">'+esc(S.draft)+'</textarea>')+
-   '<div class="bar">'+(S.mode==='out'&&!S.rec?'<button class="btn icon" data-act="attach" title="Anexar arquivos (fotos, vídeos, áudios, PDF, qualquer tipo)" aria-label="Anexar arquivos">'+ico('clip')+'</button><button class="btn icon" data-act="rec" title="Gravar áudio" aria-label="Gravar áudio">'+ico('mic')+'</button>':'')+'<span class="grow"></span>'+
+   (S.rec?recHtml():'<textarea class="inp" id="composer" rows="2" placeholder="'+(S.mode==='out'&&!open?'Escreva a primeira mensagem para '+esc(firstName(l.name)||'o cliente')+' · Enter envia':S.mode==='out'?(S.files.length?'Legenda (opcional) para o primeiro arquivo':(LUMI_ON?'Escreva a mensagem, arraste arquivos aqui ou clique numa sugestão da Lumi · Enter envia, Shift+Enter quebra linha':'Escreva a mensagem ou arraste arquivos aqui · Enter envia, Shift+Enter quebra linha')):'Nota interna, só a equipe vê')+'" data-input="draft">'+esc(S.draft)+'</textarea>')+
+   '<div class="bar">'+(S.mode==='out'&&!S.rec&&open?'<button class="btn icon" data-act="attach" title="Anexar arquivos (fotos, vídeos, áudios, PDF, qualquer tipo)" aria-label="Anexar arquivos">'+ico('clip')+'</button><button class="btn icon" data-act="rec" title="Gravar áudio" aria-label="Gravar áudio">'+ico('mic')+'</button>':'')+'<span class="grow"></span>'+
    (S.rec?'':'<button class="btn pri" data-act="send"'+(S.sending?' disabled':'')+'>'+(S.sending?'<span class="spin"></span>':ico('send','sm'))+(S.mode==='out'?(S.files.length?'Enviar '+S.files.length+(S.files.length>1?' arquivos':' arquivo'):'Enviar'):'Salvar nota')+'</button>')+'</div>')+'</div>':'')+'</div>';
 }
 function lumiCard(l){
@@ -1146,7 +1154,7 @@ function equipe(){
   const adm=isAdmin(),Q=qOrder();
   const openN=a=>S.leads.filter(l=>l.owner_id===a.id&&!CLOSED.includes(l.stage)).length;
   const card=(a,col,i)=>{const[n,c]=STATUS[a.status||'offline'];const busy=S.busy&&S.busy[a.id];
-    return'<div class="qcard'+(busy?' busy':'')+'" data-ag="'+a.id+'"'+(adm?' draggable="true"':'')+'>'+
+    return'<div class="qcard'+(busy?' busy':'')+'" data-k="q'+a.id+'" data-ag="'+a.id+'"'+(adm?' draggable="true"':'')+'>'+
       (col==='on'?'<span class="qpos mono">'+(i+1)+'º</span>':'')+avatar(a.name,'sm')+
       '<span class="qn"><b>'+esc(a.name)+'</b><small><span class="dot" style="background:'+c+'"></span>'+(col==='off'?'Desativado':n)+(adm||a.id===S.me.id?' · '+openN(a).toLocaleString('pt-BR')+' abertos':'')+'</small></span>'+
       (col==='on'&&i===0?'<span class="chip accent">Próximo lead</span>':'')+
@@ -1200,6 +1208,9 @@ document.addEventListener('submit',async e=>{
   const {error}=await sb.auth.signInWithPassword({email:$('#email').value.trim(),password:$('#pass').value});
   if(error){S.err='E-mail ou senha incorretos.';render()}
 });
+document.addEventListener('scroll',e=>{const t=e.target;if(t&&t.classList&&t.classList.contains('msgs'))S.stick=t.scrollHeight-t.scrollTop-t.clientHeight<90},true);
+document.addEventListener('load',e=>{const t=e.target;if(S.stick&&t&&(t.tagName==='IMG'||t.tagName==='VIDEO')&&t.closest&&t.closest('.msgs')){const m=t.closest('.msgs');m.scrollTop=m.scrollHeight}},true);
+document.addEventListener('loadedmetadata',e=>{const t=e.target;if(S.stick&&t&&t.closest&&t.closest('.msgs')){const m=t.closest('.msgs');m.scrollTop=m.scrollHeight}},true);
 document.addEventListener('pointerdown',e=>{const b=e.target.closest&&e.target.closest('[data-act="rec"]');if(b)micWarm()},{passive:true});
 document.addEventListener('click',async e=>{
   if(S.dd&&!(e.target.closest&&e.target.closest('.dd'))){S.dd=null;S.ddq='';render()}
@@ -1252,14 +1263,17 @@ document.addEventListener('click',async e=>{
     const text=S.draft.trim();if(!l||!text||S.sending)return;
     if(S.mode==='note'){const {error}=await sb.rpc('crm_add_note',{p_lead:l.id,p_body:text});if(error)return toast(error.message,true);S.draft='';render();return}
     // Envio instantâneo: a mensagem aparece na hora e o envio à Meta segue em segundo plano
-    const tmp={id:'tmp-'+Date.now()+Math.random().toString(36).slice(2,6),lead_id:l.id,direction:'out',msg_type:'text',body:text,status:'sending',sent_by:S.me.id,created_at:new Date().toISOString(),source:'cloud'};
+    const closed=!canSend(l),who=firstName(agentName(l.owner_id&&l.owner_id!==S.me.id?l.owner_id:S.me.id))||'sua consultora',fn=firstName(l.name)||'tudo bem',one=text.replace(/\s*\n+\s*/g,' ').replace(/ {4,}/g,'   ').slice(0,900);
+    const full=closed?'Olá '+fn+'! Aqui é '+who+', do Grupo 3 Amores.\n\n'+one+'\n\nFico à disposição por aqui.':text;
+    const payload=closed?{lead_id:l.id,template:'mensagem_consultor',lang:'pt_BR',params:[fn,who,one],text_preview:full}:{lead_id:l.id,text};
+    const tmp={id:'tmp-'+Date.now()+Math.random().toString(36).slice(2,6),lead_id:l.id,direction:'out',msg_type:closed?'template':'text',body:full,status:'sending',sent_by:S.me.id,created_at:new Date().toISOString(),source:'cloud'};
     S.msgs.push(tmp);S.draft='';S.scroll=true;render();setTimeout(()=>{const c=$('#composer');if(c)c.focus()},0);
-    sb.functions.invoke('crm-send',{body:{lead_id:l.id,text}}).then(async({data,error})=>{
+    sb.functions.invoke('crm-send',{body:payload}).then(async({data,error})=>{
       const i=S.msgs.findIndex(x=>x.id===tmp.id);
       if(error||data?.error){let msg=data?.error;try{msg=msg||(await error.context.json()).error}catch(x){}
         if(i>=0){S.msgs[i]={...tmp,status:'failed',error:msg||'Não foi possível enviar.'};
-          if(S.msgs.some(x=>x.id!==tmp.id&&x.status==='failed'&&x.body===text&&t(x.created_at)>=t(tmp.created_at)-5000))S.msgs.splice(i,1)}
-        toast(msg||'Não foi possível enviar.',true)}
+          if(S.msgs.some(x=>x.id!==tmp.id&&x.status==='failed'&&x.body===full&&t(x.created_at)>=t(tmp.created_at)-5000))S.msgs.splice(i,1)}
+        toast(closed&&/does not exist|132001|not exist/i.test(msg||'')?'A Meta ainda está aprovando o modelo da primeira mensagem. Tente de novo em alguns minutos.':(msg||'Não foi possível enviar.'),true)}
       else if(i>=0){if(S.msgs.some(x=>x.wamid&&x.wamid===data.wamid))S.msgs.splice(i,1);else S.msgs[i]={...tmp,status:'sent',wamid:data.wamid}}
       schedule()}).catch(()=>{const i=S.msgs.findIndex(x=>x.id===tmp.id);if(i>=0){S.msgs[i]={...tmp,status:'failed',error:'Sem conexão. Tente de novo.'};schedule()}});
   }
