@@ -428,6 +428,16 @@ tr:last-child td{border-bottom:0}
 .rel .grid2>.card{height:auto;max-height:420px}
 .tday{max-height:none}
 
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.tcard{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:4px 8px;padding:14px 16px;text-align:left;cursor:pointer;font:inherit;color:inherit;border:1px solid var(--line);transition:border-color .15s,transform .15s}
+.tcard:hover{border-color:var(--tc);transform:translateY(-1px)}.tcard.on{border-color:var(--tc);box-shadow:0 0 0 2px color-mix(in srgb,var(--tc) 25%,transparent)}
+.tcard .tdot{width:10px;height:10px;border-radius:50%;background:var(--tc)}.tcard .tn{font-size:13px;font-weight:600;color:var(--muted)}
+.tcard b{grid-column:1/-1;font-size:28px;font-family:var(--mono);line-height:1.1}.tcard small{grid-column:1/-1;color:var(--faint);font-size:12px}.tcard .abar{grid-column:1/-1;margin-top:6px}
+.dlist{max-height:520px;overflow:auto}
+.drow{display:grid;grid-template-columns:auto minmax(0,1fr) auto minmax(90px,auto) auto;align-items:center;gap:12px;width:100%;padding:10px 16px;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.drow:hover{background:var(--surface-2)}.drow .dn{display:grid;min-width:0}.drow .dn b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.drow .dn small{color:var(--muted)}
+.drow mark{background:var(--accent-soft);color:var(--accent);border-radius:4px;padding:0 2px}.drow .dc{font-size:12.5px;color:var(--muted)}.drow .dd{color:var(--faint);font-size:11.5px}
+@media (max-width:720px){.drow{grid-template-columns:auto minmax(0,1fr) auto}.drow .dc,.drow .dd{display:none}.tgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* ---------- responsivo ---------- */
 @media (max-width:1440px){.inbox{grid-template-columns:310px minmax(0,1fr) 340px}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media (max-width:1320px){.kpis{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}.grid2{grid-template-columns:1fr}.grid2>.card{height:auto;max-height:520px}}
@@ -513,7 +523,7 @@ const CLOSED=['ganho','perdido'];
 const TOUCH=window.matchMedia&&matchMedia('(pointer:coarse)').matches;
 const TEMPC={quente:'#E07A1F',morno:'#E0A82B',frio:'#5B88B8'};
 const RISKC={alto:'var(--crit)',medio:'var(--warn)',baixo:'var(--good)'};
-const S={session:null,me:null,agents:[],leads:[],ins:{},act:[],ai:null,msgs:[],hist:[],sel:null,view:'inbox',filter:'abertas',q:'',owner:'all',tag:'all',draft:'',mode:'out',modal:null,showCrm:false,loading:true,err:'',chans:[],msgChan:null,drag:null,busy:{},files:[],rec:null,urls:{},mnodes:{},mfail:{},mload:{},chan:null,rate:1};
+const S={session:null,me:null,agents:[],leads:[],ins:{},act:[],ai:null,msgs:[],hist:[],sel:null,view:'dash',filter:'abertas',q:'',owner:'all',tag:'all',draft:'',mode:'out',modal:null,showCrm:false,loading:true,err:'',chans:[],msgChan:null,drag:null,busy:{},files:[],rec:null,urls:{},mnodes:{},mfail:{},mload:{},chan:null,rate:1};
 
 /* ---------- icons ---------- */
 const IC={
@@ -608,6 +618,7 @@ function hue(s){let h=0;for(const c of String(s||''))h=(h*31+c.charCodeAt(0))%36
 function avatar(name,cls){return'<div class="avatar'+(cls?' '+cls:'')+'" style="--h:'+hue(name)+'">'+esc(initials(name||'?'))+'</div>'}
 function toast(m,err){const e=document.createElement('div');e.className='toast'+(err?' err':'');e.textContent=m;$('#toasts').appendChild(e);setTimeout(()=>e.remove(),err?6500:3200)}
 function agentName(id){const a=S.agents.find(x=>x.id===id);return a?a.name:'Sem responsável'}
+const firstName=n=>String(n||'').trim().split(/\s+/)[0]||'';
 const isAdmin=()=>S.me&&S.me.role==='admin';
 const windowOpen=l=>l&&l.last_in_at&&Date.now()-t(l.last_in_at)<24*H;
 const waiting=l=>t(l.last_in_at)>t(l.last_out_at)&&!CLOSED.includes(l.stage);
@@ -777,20 +788,20 @@ function shell(){
   if(!S.me)return'<div class="login"><div class="card"><h1>Sem acesso ao CRM</h1><p class="muted">Seu login existe, mas ainda não foi incluído na equipe da Central Comercial. Peça ao administrador.</p><button class="btn" data-act="logout">Sair</button></div></div>';
   const vis=visible();const unread=vis.filter(l=>l.unread).length;
   const alerts=vis.filter(l=>S.ins[l.id]&&S.ins[l.id].risk_level==='alto'&&!CLOSED.includes(l.stage)).length;
-  const navs=[['inbox','Caixa de entrada','chat',unread],['funil',isAdmin()?'Funil':'Meu funil','kanban',0],...(LUMI_ON?[['lumi','Lumi · IA','spark',alerts]]:[]),['rel','Relatórios','chart',0],['equipe','Equipe','users',0]];
+  const navs=[['dash','Painel','chart',0],['inbox','Caixa de entrada','chat',unread],['funil',isAdmin()?'Funil':'Meu funil','kanban',0],...(LUMI_ON?[['lumi','Lumi · IA','spark',alerts]]:[]),['rel','Relatórios','chart',0],['equipe','Equipe','users',0]];
   const nav=navs.map(([v,n,i,c])=>'<button class="nav-item'+(S.view===v?' on':'')+'" data-act="nav" data-v="'+v+'" title="'+n+'">'+ico(i)+'<span class="t">'+n+'</span>'+(c?'<span class="count'+(v==='lumi'?' gold':'')+'">'+c+'</span>':'')+'</button>').join('');
   const st=S.me.status||'offline';
   const statusBtns=S.me.in_queue?'<div class="status">'+Object.entries(STATUS).map(([k,[n,c]])=>'<button data-act="status" data-v="'+k+'" title="'+n+'" class="'+(st===k?'on':'')+'"><span class="dot" style="background:'+c+'"></span><span class="t">'+n+'</span></button>').join('')+'</div>':'';
   const on=lumiOn();
   const lumiCard=!LUMI_ON?'':'<button class="lumicard" data-act="nav" data-v="lumi">'+brain(48,!on)+'<div class="t"><b>Lumi <span class="live'+(on?'':' off')+'"></span></b><small>'+(on?'Analisando conversas 24 h · '+(S.ai.total_today||0)+' análises hoje':'Aguardando ativação da IA')+'</small></div></button>';
-  const titles={inbox:['Caixa de entrada',isAdmin()?'Todas as conversas do número de vendas':'Suas conversas'],funil:[isAdmin()?'Funil comercial':'Meu funil','Arraste os cartões entre as etapas'],lumi:['Lumi','Inteligência comercial que acompanha as conversas 24 horas'],rel:['Relatórios','Leads que chegam por dia, por consultor e por planilha'],equipe:['Equipe','Fila automática de distribuição']};
+  const titles={dash:['Painel',isAdmin()?'Leads que chegaram no mês, por dia e por planilha':'Seus leads do mês, por dia e por planilha'],inbox:['Caixa de entrada',isAdmin()?'Todas as conversas do número de vendas':'Suas conversas'],funil:[isAdmin()?'Funil comercial':'Meu funil','Arraste os cartões entre as etapas'],lumi:['Lumi','Inteligência comercial que acompanha as conversas 24 horas'],rel:['Relatórios','Leads que chegam por dia, por consultor e por planilha'],equipe:['Equipe','Fila automática de distribuição']};
   const [h,sub]=titles[S.view];
   const ownerSel=isAdmin()&&S.view!=='equipe'?'<select class="inp sm" id="ownerf" data-change="owner" style="width:auto" aria-label="Filtrar por consultor"><option value="all">Todos os consultores</option>'+S.agents.filter(a=>a.in_queue).map(a=>'<option value="'+a.id+'"'+(S.owner===a.id?' selected':'')+'>'+esc(a.name)+'</option>').join('')+'<option value="none"'+(S.owner==='none'?' selected':'')+'>Sem responsável</option></select>':'';
   const tagSel=S.view!=='equipe'?'<select class="inp sm" id="tagf" data-change="tag" style="width:auto" aria-label="Filtrar por planilha"><option value="all">Todas as planilhas</option>'+allTags().map(g=>'<option value="'+esc(g)+'"'+(S.tag===g?' selected':'')+'>'+esc(g)+'</option>').join('')+'<option value="none"'+(S.tag==='none'?' selected':'')+'>Sem tag</option></select>':'';
   return'<div class="app"><aside class="nav"><div class="brand"><div class="mark">CC</div><div><b>Central Comercial</b><span>Grupo 3 Amores</span></div></div><div class="navlabel">Menu</div>'+nav+lumiCard+
    '<div class="foot"><div class="me" title="'+esc(S.me.name)+'">'+avatar(S.me.name)+'<div class="t"><b>'+esc(S.me.name)+'</b><small>'+(isAdmin()?'Administrador':'Na fila de atendimento')+'</small></div></div>'+statusBtns+'<div class="footlinks"><button class="linkbtn" data-act="notif" title="Notificações">'+ico('bell','sm')+'<span class="t">Notificações</span></button><button class="linkbtn" data-act="logout" title="Sair">'+ico('out','sm')+'<span class="t">Sair</span></button></div></div></aside>'+
    '<main class="main"><header class="top"><div><h1>'+h+'</h1><div class="sub">'+sub+'</div></div><div class="grow"></div>'+tagSel+ownerSel+(S.me.in_queue?'<label class="selfsw">'+(st==='online'?'<span class="chip accent">Recebendo leads</span>':'<span class="chip warn">Você está '+STATUS[st][0].toLowerCase()+' e não recebe leads novos</span>')+'<button class="sw'+(st==='online'?' on':'')+'" data-act="selfsw" role="switch" aria-checked="'+(st==='online')+'" title="Ativar ou desativar o recebimento de leads"><i></i></button></label>':'')+'</header>'+
-   '<section class="view">'+(S.view==='inbox'?inbox():S.view==='funil'?funil():S.view==='lumi'?lumiView():S.view==='rel'?relView():equipe())+'</section></main></div>';
+   '<section class="view">'+(S.view==='dash'?dashView():S.view==='inbox'?inbox():S.view==='funil'?funil():S.view==='lumi'?lumiView():S.view==='rel'?relView():equipe())+'</section></main></div>';
 }
 function loginView(){
   return'<div class="login"><form class="card" id="loginform"><div class="row" style="gap:12px"><div class="mark">CC</div><div><h1>Central Comercial</h1><span class="muted" style="font-size:12.5px">Grupo 3 Amores · Espaço Cerejeiras</span></div></div><p style="margin:0;color:var(--muted)">Entre com o mesmo e-mail e senha do CRM.</p>'+
@@ -857,7 +868,7 @@ function chat(l){
    (mine?'<div class="composer">'+(LUMI_ON&&S.mode==='out'&&!S.files.length&&!S.rec?lumiStrip(l):'')+(S.mode==='out'&&!S.rec?stageBar(l):'')+'<div class="bar"><div class="seg">'+[['out','Responder'],['note','Nota interna']].map(([k,n])=>'<button data-act="mode" data-v="'+k+'" class="'+(S.mode===k?'on':'')+'">'+n+'</button>').join('')+'</div>'+
    '<span class="winfo" style="color:'+(open?'var(--good)':'var(--warn)')+'">'+(viaWa&&!metaCh?ico('chat','sm')+'Enviando pelo WhatsApp de '+esc(S.chan.consultor):ico('clock','sm')+(viaWa?'WhatsApp de '+esc(S.chan.consultor)+' · ':'')+(open?'Janela de 24 h aberta · '+Math.floor(left/H)+' h '+Math.floor(left%H/6e4)+' min':'Janela de 24 h fechada'+(viaWa?' · aguarde o cliente responder':' · só modelo aprovado')))+'</span></div>'+
    (S.mode==='out'&&!open&&metaCh?'<div class="bar"><span style="font-size:12.5px;color:var(--muted)">Este cliente fala com o número oficial de '+esc(S.chan.consultor)+'. Fora da janela de 24 h, só é possível responder quando ele mandar mensagem.</span></div>':
-   S.mode==='out'&&!open?'<div class="bar"><button class="btn pri" data-act="template">'+ico('send','sm')+'Enviar modelo de boas-vindas</button><span style="font-size:12px;color:var(--muted)">Quando o cliente responder, a janela abre e você conversa normalmente.</span></div>':
+   S.mode==='out'&&!open?'<div class="bar" style="flex-wrap:wrap"><button class="btn pri" data-act="template" data-v="primeiro_contato_consultor"'+(S.sending?' disabled':'')+'>'+ico('send','sm')+'Enviar primeira mensagem</button><button class="btn" data-act="template" data-v="boas_vindas_lead"'+(S.sending?' disabled':'')+'>Boas-vindas</button><span style="font-size:12px;color:var(--muted);flex-basis:100%">“Olá '+esc((l.name||'').split(' ')[0]||'…')+'! Aqui é '+esc(firstName(agentName(l.owner_id&&l.owner_id!==S.me.id?l.owner_id:S.me.id)))+', do Grupo 3 Amores…” · Quando o cliente responder, a janela de 24 h abre e você conversa normalmente.</span></div>':
    (S.mode==='out'&&S.files.length?trayHtml():'')+
    (S.rec?recHtml():'<textarea class="inp" id="composer" rows="2" placeholder="'+(S.mode==='out'?(S.files.length?'Legenda (opcional) para o primeiro arquivo':(LUMI_ON?'Escreva a mensagem, arraste arquivos aqui ou clique numa sugestão da Lumi · Enter envia, Shift+Enter quebra linha':'Escreva a mensagem ou arraste arquivos aqui · Enter envia, Shift+Enter quebra linha')):'Nota interna, só a equipe vê')+'" data-input="draft">'+esc(S.draft)+'</textarea>')+
    '<div class="bar">'+(S.mode==='out'&&!S.rec?'<button class="btn icon" data-act="attach" title="Anexar arquivos (fotos, vídeos, áudios, PDF, qualquer tipo)" aria-label="Anexar arquivos">'+ico('clip')+'</button><button class="btn icon" data-act="rec" title="Gravar áudio" aria-label="Gravar áudio">'+ico('mic')+'</button>':'')+'<span class="grow"></span>'+
@@ -963,6 +974,44 @@ function autoCard(on){
    '<div class="autog"><div class="crit">'+crit.map(([k,txt])=>'<div class="cr1"><span class="dot" style="background:'+ST[k].c+'"></span><b>'+ST[k].name+'</b><span>'+txt+'</span></div>').join('')+'</div>'+
    '<div class="rules"><b>Regras de segurança</b><ul><li>Só move quando há resposta do cliente na conversa e a confiança é de '+(ai.auto_min_conf||75)+'% ou mais.</li><li>Para marcar como Perdido, exige 88% e uma frase do cliente como prova.</li><li>Nunca marca Ganho sozinha e não mexe em negócios já encerrados.</li><li>Se um consultor mudou a etapa nas últimas 48 h, a Lumi respeita e só sugere.</li><li>Toda movimentação fica no histórico do lead, com o motivo e o trecho da conversa.</li></ul></div></div></section>';
 }
+function dashView(){
+  const L=visible(),now=new Date(),off=S.dm||0,m0=new Date(now.getFullYear(),now.getMonth()+off,1),m1=new Date(m0.getFullYear(),m0.getMonth()+1,1);
+  const ML=L.filter(l=>{const d=new Date(l.created_at);return d>=m0&&d<m1});
+  const nd=new Date(m0.getFullYear(),m0.getMonth()+1,0).getDate(),tk=dayKey(now),isCur=off===0;
+  const cnt={};ML.forEach(l=>{const k=dayKey(l.created_at);cnt[k]=(cnt[k]||0)+1});
+  const days=[...Array(nd)].map((_,i)=>new Date(m0.getFullYear(),m0.getMonth(),i+1)),vals=days.map(d=>cnt[dayKey(d)]||0);
+  const passed=isCur?now.getDate():off<0?nd:0,media=passed?ML.length/passed:0,max=Math.max(1,...vals),hoje=cnt[tk]||0;
+  const best=vals.reduce((b,v,i)=>v>vals[b]?i:b,0);
+  const NAR=innerWidth<720,W=NAR?380:960,Hc=NAR?200:230,pl=34,pr=8,pt=22,pb=26,iw=W-pl-pr,ih=Hc-pt-pb,bw=iw/nd,gap=Math.min(8,bw*.25);
+  const nice=v=>{const p=Math.pow(10,Math.floor(Math.log10(v)));const m=v/p;return(m<=1?1:m<=2?2:m<=5?5:10)*p},top=nice(max*1.1),y=v=>pt+ih-(v/top)*ih;
+  const bars=vals.map((v,i)=>{const x=pl+i*bw+gap/2,w=bw-gap,h=Math.max(v?2:0,(v/top)*ih),d=days[i],isT=dayKey(d)===tk;
+    const lab=d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
+    return'<g class="bar'+(isT?' today':'')+'" data-tip="'+esc(lab+': '+v+' lead'+(v===1?'':'s'))+'"><rect class="hit" x="'+(pl+i*bw)+'" y="'+pt+'" width="'+bw+'" height="'+ih+'" fill="transparent"/>'+
+      (v?'<path d="M'+x+' '+(pt+ih)+'V'+(y(v)+Math.min(3,h))+'q0 -3 3 -3h'+Math.max(0,w-6)+'q3 0 3 3V'+(pt+ih)+'Z"/>':'')+
+      (v&&!NAR&&(isT||i===best||bw>26)?'<text class="'+(isT?'vt':'vl')+'" x="'+(x+w/2)+'" y="'+(y(v)-6)+'" text-anchor="middle">'+v+'</text>':'')+
+      ((NAR?(i%5===0||isT):(i%2===0||isT))?'<text class="xl" x="'+(x+w/2)+'" y="'+(Hc-8)+'" text-anchor="middle">'+(isT?'Hoje':d.getDate())+'</text>':'')+'</g>'}).join('');
+  const grid=[0,top/2,top].map(v=>'<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y(v)+'" y2="'+y(v)+'" class="gl"/><text class="yl" x="'+(pl-8)+'" y="'+(y(v)+4)+'" text-anchor="end">'+Math.round(v)+'</text>').join('');
+  const avgL=media?'<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y(media)+'" y2="'+y(media)+'" class="avg"/><text class="avgt" x="'+(pl+6)+'" y="'+(y(media)-6)+'">média '+media.toFixed(1).replace('.',',')+'/dia</text>':'';
+  const mName=m0.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const chart='<svg class="rchart" viewBox="0 0 '+W+' '+Hc+'" role="img" aria-label="Leads por dia em '+mName+'">'+grid+bars+avgL+'</svg>';
+  const tg={};ML.forEach(l=>{const ks=l.tags&&l.tags.length?l.tags:['Sem planilha'];ks.forEach(k=>tg[k]=(tg[k]||0)+1)});
+  const tags=Object.entries(tg).sort((a,b)=>b[1]-a[1]),maxT=Math.max(1,...tags.map(x=>x[1]));
+  const k=(lab,val,sub,cls)=>'<div class="card kpi'+(cls?' '+cls:'')+'"><small>'+lab+'</small><b>'+val+'</b><span>'+sub+'</span></div>';
+  const head='<div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><div class="row" style="gap:6px"><button class="btn sm" data-act="dm" data-v="-1" aria-label="Mês anterior">‹</button><b style="font-size:16px;text-transform:capitalize;min-width:150px;text-align:center">'+esc(mName)+'</b><button class="btn sm" data-act="dm" data-v="1" aria-label="Próximo mês"'+(off>=0?' disabled':'')+'>›</button>'+(off?'<button class="btn sm ghost" data-act="dm" data-v="0">Mês atual</button>':'')+'</div><span class="muted" style="font-size:12.5px">Clique numa planilha para ver os leads dela</span></div>';
+  const kp='<div class="kpis">'+k('Leads no mês','<span class="hero-n">'+ML.length.toLocaleString('pt-BR')+'</span>',isCur?'até hoje':'no mês inteiro','hl')+(isCur?k('Hoje',hoje,dayLabel(now)):'')+k('Média por dia',media.toFixed(1).replace('.',','),passed+' dia'+(passed===1?'':'s'))+k('Melhor dia',vals[best]||0,vals[best]?days[best].toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}):'—')+k('Planilhas',tags.length,'com leads no mês')+'</div>';
+  const card='<div class="card"><div class="ch">'+ico('chart')+'<b>Leads por dia</b><span class="cr">'+esc(mName)+'</span></div><div class="chartw">'+chart+'<div class="ctip" id="ctip"></div></div></div>';
+  const tcards='<div class="tgrid">'+(tags.map(([g,n])=>'<button class="card tcard'+(S.dtag===g?' on':'')+'" data-act="dtag" data-v="'+esc(g)+'" style="--tc:'+(TAGC[g]||'#5b6470')+'"><span class="tdot"></span><span class="tn">'+esc(g)+'</span><b>'+n.toLocaleString('pt-BR')+'</b><small>'+Math.round(n/Math.max(1,ML.length)*100)+'% do mês</small><span class="abar"><i style="width:'+(n/maxT*100)+'%;background:var(--tc)"></i></span></button>').join('')||'<div class="card empty" style="padding:24px"><b>Nenhum lead neste mês</b></div>')+'</div>';
+  let list='';
+  if(S.dtag&&tg[S.dtag]){
+    const dq=(S.dq||'').replace(/\D/g,''),nq=(S.dq||'').trim().toLowerCase();
+    let TL=ML.filter(l=>S.dtag==='Sem planilha'?!(l.tags&&l.tags.length):(l.tags||[]).includes(S.dtag)).sort((a,b)=>t(b.created_at)-t(a.created_at));
+    if(nq)TL=TL.filter(l=>dq?(l.phone||'').endsWith(dq)||(l.phone||'').includes(dq):(l.name||'').toLowerCase().includes(nq));
+    list='<div class="card"><div class="ch">'+ico('file')+'<b>'+esc(S.dtag)+'</b><span class="cr">'+TL.length.toLocaleString('pt-BR')+' lead'+(TL.length===1?'':'s')+'</span><button class="btn sm ghost" data-act="dtag" data-v="" aria-label="Fechar">'+ico('x','sm')+'</button></div>'+
+      '<div style="padding:12px 16px;border-bottom:1px solid var(--line)"><div class="search">'+ico('search','sm')+'<input class="inp" id="dq" inputmode="search" placeholder="Últimos 4 números do telefone (ou nome)" data-input="dq" value="'+esc(S.dq||'')+'"></div></div>'+
+      '<div class="dlist">'+(TL.map(l=>'<button class="drow" data-act="open" data-id="'+l.id+'">'+avatar(l.name||l.phone,'sm')+'<span class="dn"><b>'+esc(l.name||'Cliente sem nome')+'</b><small class="mono">'+phone(l.phone).replace(/(\d{4})$/,'<mark>$1</mark>')+'</small></span><span class="chip">'+esc(ST[l.stage]?ST[l.stage].name:l.stage)+'</span><span class="dc">'+esc(l.owner_id?agentName(l.owner_id):'Sem responsável')+'</span><small class="dd mono">'+fDT(l.created_at)+'</small></button>').join('')||'<div class="empty" style="padding:22px"><b>Nenhum lead encontrado</b><span>Confira os 4 últimos números.</span></div>')+'</div></div>';
+  }
+  return'<div class="lumi rel">'+head+kp+card+'<div class="ch" style="padding:2px 2px 0"><b>Leads por planilha</b><span class="cr" style="margin-left:8px">'+esc(mName)+'</span></div>'+tcards+list+'</div>';
+}
 function relView(){
   const L=visible(),N=S.relDays||14,today=new Date();today.setHours(0,0,0,0);
   const days=[];for(let k=N-1;k>=0;k--){const d=new Date(today);d.setDate(d.getDate()-k);days.push(d)}
@@ -1060,6 +1109,8 @@ document.addEventListener('click',async e=>{
   else if(a==='prio'){const l=L();const {error}=await sb.from('crm_leads').update({priority:!l.priority}).eq('id',l.id);if(error)toast(error.message,true)}
   else if(a==='lumi'){if(S.sel)askLumi(S.sel)}
   else if(a==='reldays'){S.relDays=+v;render()}
+  else if(a==='dm'){S.dm=v==='0'?0:Math.min(0,(S.dm||0)+(+v));S.dtag=null;S.dq='';render()}
+  else if(a==='dtag'){S.dtag=S.dtag===v||!v?null:v;S.dq='';render();if(S.dtag)setTimeout(()=>{const e=$('#dq');if(e){e.focus();e.scrollIntoView({block:'nearest',behavior:'smooth'})}},0)}
   else if(a==='speed'){const n=S.mnodes[id];const au=n&&n.querySelector('audio');if(au){const r={1:1.5,1.5:2,2:1}[au.playbackRate]||1;au.playbackRate=r;S.rate=r;el.textContent=String(r).replace('.',',')+'x'}}
   else if(a==='autostage'){const on=!(S.ai&&S.ai.auto_stage!==false);const {error}=await sb.rpc('crm_ai_set_auto',{p_on:on});if(error)toast(error.message,true);else{S.ai={...(S.ai||{}),auto_stage:on};toast(on?'A Lumi vai organizar o funil automaticamente.':'Organização automática desligada: a Lumi só vai sugerir.');render()}}
   else if(a==='attach'){if(!canSend(L())){toast('A janela de 24 h está fechada: envie o modelo de boas-vindas primeiro.',true);return}$('#filepick').click()}
@@ -1093,10 +1144,11 @@ document.addEventListener('click',async e=>{
   }
   else if(a==='template'){
     const l=L();S.sending=true;render();
-    const first=(l.name||'').split(' ')[0]||'tudo bem';
-    const {data,error}=await sb.functions.invoke('crm-send',{body:{lead_id:l.id,template:'boas_vindas_lead',lang:'pt_BR',params:[first]}});
+    const first=(l.name||'').trim().split(/\s+/)[0]||'tudo bem',tpl=v||'primeiro_contato_consultor';
+    const who=firstName(agentName(l.owner_id&&l.owner_id!==S.me.id?l.owner_id:S.me.id))||'sua consultora';
+    const {data,error}=await sb.functions.invoke('crm-send',{body:{lead_id:l.id,template:tpl,lang:'pt_BR',params:tpl==='primeiro_contato_consultor'?[first,who]:[first]}});
     S.sending=false;
-    if(error||data?.error){let msg=data?.error;try{msg=msg||(await error.context.json()).error}catch(x){}toast(msg||'Não foi possível enviar.',true)}else toast('Modelo enviado.');
+    if(error||data?.error){let msg=data?.error;try{msg=msg||(await error.context.json()).error}catch(x){}toast(/does not exist|not exist|132001/i.test(msg||'')?'A Meta ainda está aprovando esse modelo de mensagem. Tente de novo em alguns minutos.':(msg||'Não foi possível enviar.'),true)}else toast('Primeira mensagem enviada.');
     render();
   }
   else if(a==='transfer'){const to=$('#trto').value;const {error}=await sb.rpc('crm_transfer',{p_lead:S.sel,p_to:to,p_reason:'manual'});if(error)toast(error.message,true);else{toast('Transferido para '+agentName(to)+'.');openLead(S.sel)}}
@@ -1104,7 +1156,7 @@ document.addEventListener('click',async e=>{
   else if(a==='lostok'){let r=$('#lostr').value;const d=$('#lostt').value.trim();if(d)r+=' · '+d;const id2=S.modal.id;S.modal=null;await moveStage(id2,'perdido',r)}
   else if(a==='wonok'){const val=Number($('#wonv').value)||0;const id2=S.modal.id;S.modal=null;await moveStage(id2,'ganho',null,val)}
 });
-document.addEventListener('input',e=>{const k=e.target.dataset.input;if(k==='q'){S.q=e.target.value;schedule()}else if(k==='draft')S.draft=e.target.value});
+document.addEventListener('input',e=>{const k=e.target.dataset.input;if(k==='q'){S.q=e.target.value;schedule()}else if(k==='draft')S.draft=e.target.value;else if(k==='dq'){S.dq=e.target.value;schedule()}});
 document.addEventListener('change',async e=>{
   const el=e.target;
   if(el.dataset.field){const l=S.leads.find(x=>x.id===S.sel);let v=el.value;if(el.type==='number')v=v===''?null:Number(v);if(v==='')v=null;
