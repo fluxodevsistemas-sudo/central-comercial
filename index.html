@@ -663,7 +663,7 @@ async function openLead(id){
   if(S.sel!==id)return;
   S.msgs=(m||[]).reverse();S.hist=[...(a||[]).map(x=>({...x,k:'a'})),...(h||[]).map(x=>({...x,k:'s'}))].sort((x,y)=>t(y.created_at)-t(x.created_at));
   S.msgChan=sb.channel('msgs-'+id).on('postgres_changes',{event:'*',schema:'public',table:'crm_messages',filter:'lead_id=eq.'+id},p=>{
-    let i=S.msgs.findIndex(x=>x.id===p.new.id||(p.new.wamid&&x.wamid===p.new.wamid&&String(x.id).startsWith('tmp-')));if(i<0&&p.new.direction==='out')i=S.msgs.findIndex(x=>String(x.id).startsWith('tmp-')&&x.status==='sending'&&x.body===p.new.body);if(i>=0)S.msgs[i]=p.new;else S.msgs.push(p.new);S.scroll=true;schedule()}).subscribe();
+    let i=S.msgs.findIndex(x=>x.id===p.new.id||(p.new.wamid&&x.wamid===p.new.wamid&&String(x.id).startsWith('tmp-')));if(i<0&&p.new.media_path)i=S.msgs.findIndex(x=>x.pending&&x.pending===p.new.media_path);if(i<0&&p.new.direction==='out'&&!p.new.media_path)i=S.msgs.findIndex(x=>String(x.id).startsWith('tmp-')&&x.status==='sending'&&!x.local_url&&x.body===p.new.body);if(i>=0){const lu=S.msgs[i].local_url,oid=S.msgs[i].id;S.msgs[i]=lu?{...p.new,local_url:lu}:p.new;if(lu&&S.mnodes[oid]){S.mnodes[p.new.id]=S.mnodes[oid];delete S.mnodes[oid]}}else S.msgs.push(p.new);S.scroll=true;schedule()}).subscribe();
   S.scroll=true;render();
   // Sem limite: as mensagens mais antigas chegam em segundo plano, de 1000 em 1000, sem tirar a pessoa do lugar
   if((m||[]).length===1000)(async()=>{for(let i=1000;;i+=1000){const {data:o,error}=await sb.from('crm_messages').select('*').eq('lead_id',id).order('created_at',{ascending:false}).range(i,i+999);
@@ -714,21 +714,35 @@ async function optimizeImage(f){
     let q=.9,blob;for(let i=0;i<6;i++){blob=await new Promise(r=>c.toBlob(r,'image/jpeg',q));if(blob&&blob.size<=5*MBy)break;q-=.12}
     if(!blob)return f;const name=f.name.replace(/\.[^.]+$/,'')+'.jpg';return{...f,file:new File([blob],name,{type:'image/jpeg'}),name,mime:'image/jpeg',size:blob.size}}catch(e){return f}
 }
+// Envio instantâneo de arquivos: o balão aparece na hora (com prévia local) e o envio segue em segundo plano, na ordem
+const SENDQ=[];let sendingQ=false;
+function kindGuess(m){return m.startsWith('image/')?'image':m.startsWith('video/')?'video':m.startsWith('audio/')?'audio':'document'}
 async function sendFiles(l){
-  if(S.sending)return;S.sending=true;let caption=S.draft.trim();S.draft='';render();let fails=0;
-  for(const f0 of S.files){if(f0.st==='ok')continue;f0.st='up';render();
+  const list=S.files.filter(f=>f.st!=='ok');if(!list.length)return;let caption=S.draft.trim();
+  S.files=[];S.draft='';
+  for(const f0 of list){const url=f0.url||URL.createObjectURL(f0.file);
+    const tmp={id:'tmp-'+(++FID)+'-'+Date.now(),lead_id:l.id,direction:'out',msg_type:kindGuess(f0.mime),body:caption||null,status:'sending',sent_by:S.me.id,created_at:new Date().toISOString(),source:'cloud',local_url:url,mime:f0.mime,file_name:f0.name,file_size:f0.size};
+    S.msgs.push(tmp);SENDQ.push({l,f0,tmp,caption});caption=''}
+  S.scroll=true;render();runSendQ();
+}
+async function runSendQ(){
+  if(sendingQ)return;sendingQ=true;
+  while(SENDQ.length){const {l,f0,tmp,caption}=SENDQ.shift();
+    const upd=o=>{const i=S.msgs.findIndex(x=>x.id===tmp.id);if(i>=0){S.msgs[i]={...S.msgs[i],...o};schedule()}};
     try{const f=await optimizeImage(f0);
       const safe=(f.name||'arquivo').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w.\-]+/g,'_').slice(-80);
       const path=l.id+'/out/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'-'+safe;
+      tmp.pending=path;upd({pending:path});
       const {error:ue}=await sb.storage.from('crm-media').upload(path,f.file,{contentType:f.mime,upsert:false});if(ue)throw new Error(ue.message);
       const {data,error}=await sb.functions.invoke('crm-send',{body:{lead_id:l.id,media:{path,name:f.name,mime:f.mime,size:f.size},caption}});
       if(error||data?.error){let msg=data?.error;try{msg=msg||(await error.context.json()).error}catch(x){}throw new Error(msg||'Não foi possível enviar.')}
-      f0.st='ok';caption='';
-    }catch(e){f0.st='err';fails++;toast(f0.name+': '+e.message,true)}
-    render()}
-  S.sending=false;
-  if(!fails){S.files.forEach(f=>f.url&&URL.revokeObjectURL(f.url));S.files=[]}else S.files=S.files.filter(f=>f.st!=='ok');
-  if(caption)S.draft=caption;render();
+      const i=S.msgs.findIndex(x=>x.id===tmp.id);
+      if(i>=0){if(S.msgs.some(x=>x.media_path===path&&x.id!==tmp.id))S.msgs.splice(i,1);else S.msgs[i]={...S.msgs[i],status:'sent',wamid:data.wamid}}
+      schedule();
+    }catch(e){const i=S.msgs.findIndex(x=>x.id===tmp.id);
+      if(i>=0){if(S.msgs.some(x=>x.media_path&&x.media_path===tmp.pending&&x.id!==tmp.id))S.msgs.splice(i,1);else S.msgs[i]={...S.msgs[i],status:'failed',error:e.message}}
+      toast(f0.name+': '+e.message,true);schedule()}}
+  sendingQ=false;
 }
 function signedUrl(path){const c=S.urls[path];if(c&&c.exp>Date.now())return c.url;if(c&&c.loading)return null;
   S.urls[path]={loading:true,exp:0};sb.storage.from('crm-media').createSignedUrl(path,3600).then(({data})=>{S.urls[path]={url:data&&data.signedUrl,exp:Date.now()+3500e3};schedule()});return null}
@@ -738,6 +752,10 @@ function loadWaMedia(m){if(S.mload[m.id]||S.mfail[m.id])return;const busy=Object
     else{let msg=data&&data.error;try{msg=msg||(await error.context.json()).error}catch(x){}S.mfail[m.id]=msg||'Arquivo indisponível'}schedule()}).catch(()=>{delete S.mload[m.id];S.mfail[m.id]='Arquivo indisponível';schedule()})}
 const MLAB={audio:'Áudio',ptt:'Áudio',voice:'Áudio',image:'Foto',video:'Vídeo',document:'Documento',sticker:'Figurinha'};
 function mediaHtml(m){
+  if(m.local_url){const mime=(m.mime||'').toLowerCase(),name=esc(m.file_name||'arquivo'),u=m.local_url;
+    if(mime.startsWith('image/'))return'<span class="mimg"><img src="'+u+'" alt="'+name+'"></span>';
+    if(mime.startsWith('video/')||mime.startsWith('audio/'))return'<div class="mslot'+(mime.startsWith('audio/')?' aud':'')+'" data-mslot="'+m.id+'" data-src="'+esc(u)+'" data-kind="'+(mime.startsWith('audio/')?'audio':'video')+'"></div>';
+    return'<span class="mfile"><span class="mfi">'+ico('file')+'<i>'+esc((m.file_name||'').split('.').pop().slice(0,4).toUpperCase())+'</i></span><span class="mfn"><b>'+name+'</b><small>'+fsize(m.file_size)+'</small></span></span>'}
   if(!m.media_path&&m.wamid&&String(m.wamid).startsWith('zapi:')&&MEDIA_T.includes(m.msg_type)&&m.msg_type!=='link'){
     if(S.mfail[m.id]||m.error==='Arquivo expirado no WhatsApp')return'<div class="mph">'+ico('alert','sm')+(MLAB[m.msg_type]||'Arquivo')+' · '+esc(S.mfail[m.id]||'não está mais disponível no WhatsApp')+'</div>';
     loadWaMedia(m);return'<div class="mph"><span class="spin"></span>Carregando '+(MLAB[m.msg_type]||'arquivo').toLowerCase()+'…</div>'}
@@ -749,19 +767,33 @@ function mediaHtml(m){
   return'<a class="mfile" href="'+u+'" target="_blank" rel="noopener" download="'+name+'"><span class="mfi">'+ico('file')+'<i>'+esc((m.file_name||'').split('.').pop().slice(0,4).toUpperCase())+'</i></span><span class="mfn"><b>'+name+'</b><small>'+fsize(m.file_size)+(m.msg_type==='link'?' · enviado como link':'')+'</small></span>'+ico('dl','sm')+'</a>';
 }
 function recHtml(){const s=Math.floor((Date.now()-S.rec.t0)/1000);
+  if(S.rec.prep)return'<div class="recbar"><span class="spin"></span><b>Ligando o microfone…</b><span class="grow"></span><button class="btn sm" data-act="reccancel">'+ico('x','sm')+'Cancelar</button></div>';
   return'<div class="recbar"><span class="recdot"></span><b class="mono">'+pad(Math.floor(s/60))+':'+pad(s%60)+'</b><span class="recw">'+Array.from({length:28},(_,k)=>'<i style="animation-delay:'+(k*.07).toFixed(2)+'s"></i>').join('')+'</span>'+
   '<button class="btn sm" data-act="reccancel">'+ico('x','sm')+'Cancelar</button><button class="btn sm pri" data-act="recsend">'+ico('send','sm')+'Enviar áudio</button></div>'}
 let recTimer=0;
 async function loadRecorder(){if(window.Recorder)return;await new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='vendor/recorder.min.js';sc.onload=ok;sc.onerror=no;document.head.appendChild(sc)})}
+// Microfone fica pronto entre gravações (por 3 min) para o áudio começar a gravar na hora, sem cortar o início
+const MIC={stream:null,ctx:null,timer:0};
+async function micReady(){
+  clearTimeout(MIC.timer);
+  if(MIC.stream&&MIC.stream.active&&MIC.ctx&&MIC.ctx.state!=='closed'){if(MIC.ctx.state==='suspended')await MIC.ctx.resume();return MIC}
+  MIC.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}});
+  MIC.ctx=new (window.AudioContext||window.webkitAudioContext)();if(MIC.ctx.state==='suspended')await MIC.ctx.resume();return MIC}
+function micRelease(){clearTimeout(MIC.timer);MIC.timer=setTimeout(()=>{try{MIC.stream.getTracks().forEach(t=>t.stop())}catch(e){}try{MIC.ctx.close()}catch(e){}MIC.stream=null;MIC.ctx=null},180000)}
+function micWarm(){loadRecorder().catch(()=>{});micReady().catch(()=>{})}
 async function startRec(){
+  if(S.rec)return;const rec={prep:true,t0:Date.now(),lead:S.sel};S.rec=rec;render();
   try{await loadRecorder();if(!Recorder.isRecordingSupported())throw new Error('Este navegador não grava áudio.');
-    const r=new Recorder({encoderPath:'vendor/encoderWorker.min.js',numberOfChannels:1,encoderApplication:2048,encoderSampleRate:48000,streamPages:false,mediaTrackConstraints:{echoCancellation:true,noiseSuppression:true}});
-    r.ondataavailable=buf=>{const keep=S.rec&&S.rec.send;const lid=S.rec&&S.rec.lead;S.rec=null;clearInterval(recTimer);
+    const m=await micReady();if(S.rec!==rec)return micRelease();
+    const r=new Recorder({encoderPath:'vendor/encoderWorker.min.js',numberOfChannels:1,encoderApplication:2048,encoderSampleRate:48000,streamPages:false,sourceNode:m.ctx.createMediaStreamSource(m.stream)});
+    r.ondataavailable=buf=>{const keep=rec.send;const lid=rec.lead;if(S.rec===rec)S.rec=null;clearInterval(recTimer);micRelease();
       if(keep){const f=new File([buf],'audio-'+new Date().toTimeString().slice(0,5).replace(':','h')+'.ogg',{type:'audio/ogg'});S.files=S.files.filter(x=>x.st!=='ok');addFiles([f]);const l=S.leads.find(x=>x.id===lid);if(l&&S.sel===lid)sendFiles(l)}else render()};
-    await r.start();S.rec={r,t0:Date.now(),lead:S.sel};recTimer=setInterval(schedule,500);render();
-  }catch(e){S.rec=null;toast(e&&e.name==='NotAllowedError'?'Permita o uso do microfone no navegador para gravar áudio.':(e.message||'Não foi possível gravar.'),true);render()}
+    await r.start();rec.r=r;rec.prep=false;rec.t0=Date.now();
+    if(S.rec!==rec){try{r.stop()}catch(e){}return}
+    recTimer=setInterval(schedule,500);render();
+  }catch(e){if(S.rec===rec)S.rec=null;micRelease();toast(e&&e.name==='NotAllowedError'?'Permita o uso do microfone no navegador para gravar áudio.':(e.message||'Não foi possível gravar.'),true);render()}
 }
-function stopRec(send){if(!S.rec)return;S.rec.send=send;try{S.rec.r.stop()}catch(e){S.rec=null;render()}}
+function stopRec(send){const rec=S.rec;if(!rec)return;rec.send=send;if(!rec.r){S.rec=null;render();return}try{rec.r.stop()}catch(e){S.rec=null;render()}}
 
 /* ---------- render ---------- */
 let raf=0;function schedule(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;render()})}
@@ -974,6 +1006,8 @@ function autoCard(on){
    '<div class="autog"><div class="crit">'+crit.map(([k,txt])=>'<div class="cr1"><span class="dot" style="background:'+ST[k].c+'"></span><b>'+ST[k].name+'</b><span>'+txt+'</span></div>').join('')+'</div>'+
    '<div class="rules"><b>Regras de segurança</b><ul><li>Só move quando há resposta do cliente na conversa e a confiança é de '+(ai.auto_min_conf||75)+'% ou mais.</li><li>Para marcar como Perdido, exige 88% e uma frase do cliente como prova.</li><li>Nunca marca Ganho sozinha e não mexe em negócios já encerrados.</li><li>Se um consultor mudou a etapa nas últimas 48 h, a Lumi respeita e só sugere.</li><li>Toda movimentação fica no histórico do lead, com o motivo e o trecho da conversa.</li></ul></div></div></section>';
 }
+const SRCL={'Tatiane Coyado':['Planilha Tatiane Coyado','#b7791f'],'Grupo 3 Amores':['Planilha Grupo 3 Amores','#2b6cb0'],'Experience':['Planilha Experience','#6b46c1'],'Principal':['Planilha Principal','#c2417a'],'Manual':['Criados manualmente/SDR','#5b6470'],'Sdr':['Criados manualmente/SDR','#5b6470'],'WhatsApp':['WhatsApp direto','#2FB37A']};
+const srcName=l=>(SRCL[l.source]||[l.source?String(l.source):'Outros'])[0],srcColor=n=>(Object.values(SRCL).find(x=>x[0]===n)||[0,'#7a8590'])[1];
 function dashView(){
   const L=visible(),now=new Date(),off=S.dm||0,m0=new Date(now.getFullYear(),now.getMonth()+off,1),m1=new Date(m0.getFullYear(),m0.getMonth()+1,1);
   const ML=L.filter(l=>{const d=new Date(l.created_at);return d>=m0&&d<m1});
@@ -994,23 +1028,33 @@ function dashView(){
   const avgL=media?'<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y(media)+'" y2="'+y(media)+'" class="avg"/><text class="avgt" x="'+(pl+6)+'" y="'+(y(media)-6)+'">média '+media.toFixed(1).replace('.',',')+'/dia</text>':'';
   const mName=(m=>m.charAt(0).toUpperCase()+m.slice(1))(m0.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}));
   const chart='<svg class="rchart" viewBox="0 0 '+W+' '+Hc+'" role="img" aria-label="Leads por dia em '+mName+'">'+grid+bars+avgL+'</svg>';
-  const tg={};ML.forEach(l=>{const ks=l.tags&&l.tags.length?l.tags:['Sem planilha'];ks.forEach(k=>tg[k]=(tg[k]||0)+1)});
+  const tg={};ML.forEach(l=>{const k=srcName(l);tg[k]=(tg[k]||0)+1});
   const tags=Object.entries(tg).sort((a,b)=>b[1]-a[1]),maxT=Math.max(1,...tags.map(x=>x[1]));
   const k=(lab,val,sub,cls)=>'<div class="card kpi'+(cls?' '+cls:'')+'"><small>'+lab+'</small><b>'+val+'</b><span>'+sub+'</span></div>';
   const head='<div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><div class="row" style="gap:6px"><button class="btn sm" data-act="dm" data-v="-1" aria-label="Mês anterior">‹</button><b style="font-size:16px;min-width:150px;text-align:center">'+esc(mName)+'</b><button class="btn sm" data-act="dm" data-v="1" aria-label="Próximo mês"'+(off>=0?' disabled':'')+'>›</button>'+(off?'<button class="btn sm ghost" data-act="dm" data-v="0">Mês atual</button>':'')+'</div><span class="muted" style="font-size:12.5px">Clique numa planilha para ver os leads dela</span></div>';
-  const kp='<div class="kpis">'+k('Leads no mês','<span class="hero-n">'+ML.length.toLocaleString('pt-BR')+'</span>',isCur?'até hoje':'no mês inteiro','hl')+(isCur?k('Hoje',hoje,dayLabel(now)):'')+k('Média por dia',media.toFixed(1).replace('.',','),passed+' dia'+(passed===1?'':'s'))+k('Melhor dia',vals[best]||0,vals[best]?days[best].toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}):'—')+k('Planilhas',tags.length,'com leads no mês')+'</div>';
+  const kp='<div class="kpis">'+k('Leads no mês','<span class="hero-n">'+ML.length.toLocaleString('pt-BR')+'</span>',isCur?'até hoje':'no mês inteiro','hl')+(isCur?k('Hoje',hoje,dayLabel(now)):'')+k('Média por dia',media.toFixed(1).replace('.',','),passed+' dia'+(passed===1?'':'s'))+k('Melhor dia',vals[best]||0,vals[best]?days[best].toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}):'—')+k('Origens',tags.length,'com leads no mês')+'</div>';
   const card='<div class="card"><div class="ch">'+ico('chart')+'<b>Leads por dia</b><span class="cr">'+esc(mName)+'</span></div><div class="chartw">'+chart+'<div class="ctip" id="ctip"></div></div></div>';
-  const tcards='<div class="tgrid">'+(tags.map(([g,n])=>'<button class="card tcard'+(S.dtag===g?' on':'')+'" data-act="dtag" data-v="'+esc(g)+'" style="--tc:'+(TAGC[g]||'#5b6470')+'"><span class="tdot"></span><span class="tn">'+esc(g)+'</span><b>'+n.toLocaleString('pt-BR')+'</b><small>'+Math.round(n/Math.max(1,ML.length)*100)+'% do mês</small><span class="abar"><i style="width:'+(n/maxT*100)+'%;background:var(--tc)"></i></span></button>').join('')||'<div class="card empty" style="padding:24px"><b>Nenhum lead neste mês</b></div>')+'</div>';
+  const tcards='<div class="tgrid">'+(tags.map(([g,n])=>'<button class="card tcard'+(S.dtag===g?' on':'')+'" data-act="dtag" data-v="'+esc(g)+'" style="--tc:'+srcColor(g)+'"><span class="tdot"></span><span class="tn">'+esc(g)+'</span><b>'+n.toLocaleString('pt-BR')+'</b><small>'+Math.round(n/Math.max(1,ML.length)*100)+'% do mês</small><span class="abar"><i style="width:'+(n/maxT*100)+'%;background:var(--tc)"></i></span></button>').join('')||'<div class="card empty" style="padding:24px"><b>Nenhum lead neste mês</b></div>')+'</div>';
   let list='';
   if(S.dtag&&tg[S.dtag]){
     const dq=(S.dq||'').replace(/\D/g,''),nq=(S.dq||'').trim().toLowerCase();
-    let TL=ML.filter(l=>S.dtag==='Sem planilha'?!(l.tags&&l.tags.length):(l.tags||[]).includes(S.dtag)).sort((a,b)=>t(b.created_at)-t(a.created_at));
+    let TL=ML.filter(l=>srcName(l)===S.dtag).sort((a,b)=>t(b.created_at)-t(a.created_at));
     if(nq)TL=TL.filter(l=>dq?(l.phone||'').endsWith(dq)||(l.phone||'').includes(dq):(l.name||'').toLowerCase().includes(nq));
     list='<div class="card"><div class="ch">'+ico('file')+'<b>'+esc(S.dtag)+'</b><span class="cr">'+TL.length.toLocaleString('pt-BR')+' lead'+(TL.length===1?'':'s')+'</span><button class="btn sm ghost" data-act="dtag" data-v="" aria-label="Fechar">'+ico('x','sm')+'</button></div>'+
       '<div style="padding:12px 16px;border-bottom:1px solid var(--line)"><div class="search">'+ico('search','sm')+'<input class="inp" id="dq" inputmode="search" placeholder="Últimos 4 números do telefone (ou nome)" data-input="dq" value="'+esc(S.dq||'')+'"></div></div>'+
       '<div class="dlist">'+(TL.map(l=>'<button class="drow" data-act="open" data-id="'+l.id+'">'+avatar(l.name||l.phone,'sm')+'<span class="dn"><b>'+esc(l.name||'Cliente sem nome')+'</b><small class="mono">'+phone(l.phone).replace(/(\d{4})$/,'<mark>$1</mark>')+'</small></span><span class="chip">'+esc(ST[l.stage]?ST[l.stage].name:l.stage)+'</span><span class="dc">'+esc(l.owner_id?agentName(l.owner_id):'Sem responsável')+'</span><small class="dd mono">'+fDT(l.created_at)+'</small></button>').join('')||'<div class="empty" style="padding:22px"><b>Nenhum lead encontrado</b><span>Confira os 4 últimos números.</span></div>')+'</div></div>';
   }
-  return'<div class="lumi rel">'+head+kp+card+'<div class="ch" style="padding:2px 2px 0"><b>Leads por planilha</b><span class="cr" style="margin-left:8px">'+esc(mName)+'</span></div>'+tcards+list+'</div>';
+  const key=m0.toISOString();if(S.missKey!==key){S.missKey=key;S.miss=null;loadMissing(m0,m1,key)}
+  const miss=S.miss&&S.miss.key===key?S.miss.rows:[];
+  const warn=miss.length?'<div class="card" style="border-color:color-mix(in srgb,var(--warn) 45%,var(--line))"><div class="ch">'+ico('alert')+'<b>Leads da planilha que não entraram no CRM</b><span class="cr">'+miss.length+'</span></div><div class="dlist">'+miss.map(r=>'<div class="drow" style="cursor:default">'+avatar(r.nome||'?','sm')+'<span class="dn"><b>'+esc(r.nome||'Sem nome')+'</b><small class="mono">'+esc(r.telefone||'sem telefone')+' · '+esc(r.motivo)+'</small></span><span class="chip">'+esc((SRCL[r.src]||[r.src])[0])+'</span><span class="dc"></span><small class="dd mono">'+fDT(r.created_at)+'</small></div>').join('')+'</div></div>':'';
+  return'<div class="lumi rel">'+head+kp+warn+card+'<div class="ch" style="padding:2px 2px 0"><b>Leads por origem</b><span class="cr" style="margin-left:8px">'+esc(mName)+'</span></div>'+tcards+list+'</div>';
+}
+const SRCMAP={tatiane_coyado:'Tatiane Coyado',grupo_3_amores:'Grupo 3 Amores',experience:'Experience',principal:'Principal',manual:'Manual',sdr:'Sdr'};
+async function loadMissing(m0,m1,key){
+  try{const rows=[];for(let i=0;;i+=1000){const {data,error}=await sb.from('sheet_leads').select('id,nome,telefone,source,created_at').gte('created_at',m0.toISOString()).lt('created_at',m1.toISOString()).order('created_at',{ascending:false}).range(i,i+999);if(error||!data)break;rows.push(...data);if(data.length<1000)break}
+    const linked=new Set(S.leads.map(l=>l.sheet_lead_id).filter(Boolean)),k8=new Set(S.leads.map(l=>String(l.phone||'').slice(-8)));
+    const out=rows.filter(r=>{const d=String(r.telefone||'').replace(/\D/g,'');return !linked.has(r.id)&&!(d.length>=8&&k8.has(d.slice(-8)))}).map(r=>{const d=String(r.telefone||'').replace(/\D/g,'');return{...r,src:SRCMAP[r.source]||r.source,motivo:!d?'sem telefone':d.length<10?'telefone sem DDD':'não virou conversa'}});
+    if(S.missKey===key){S.miss={key,rows:out};schedule()}}catch(e){}
 }
 function relView(){
   const L=visible(),N=S.relDays||14,today=new Date();today.setHours(0,0,0,0);
@@ -1084,6 +1128,7 @@ document.addEventListener('submit',async e=>{
   const {error}=await sb.auth.signInWithPassword({email:$('#email').value.trim(),password:$('#pass').value});
   if(error){S.err='E-mail ou senha incorretos.';render()}
 });
+document.addEventListener('pointerdown',e=>{const b=e.target.closest&&e.target.closest('[data-act="rec"]');if(b)micWarm()},{passive:true});
 document.addEventListener('click',async e=>{
   const el=e.target.closest('[data-act]');if(!el)return;const a=el.dataset.act,v=el.dataset.v,id=el.dataset.id;
   if(e.target.closest('select'))return;
@@ -1184,7 +1229,7 @@ setInterval(schedule,60000);
 /* ---------- boot ---------- */
 async function start(session){
   S.session=session;S.err='';
-  if(session){await loadAll();if(S.me)subscribe()}
+  if(session){await loadAll();if(S.me)subscribe();setTimeout(()=>loadRecorder().catch(()=>{}),2500)}
   S.loading=false;render();
 }
 sb.auth.onAuthStateChange((ev,session)=>{if(ev==='SIGNED_IN'||ev==='SIGNED_OUT'||ev==='INITIAL_SESSION'){if((S.session&&S.session.user.id)!==(session&&session.user.id)||ev==='INITIAL_SESSION')start(session)}});
