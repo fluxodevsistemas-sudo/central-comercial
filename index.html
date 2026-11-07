@@ -387,6 +387,8 @@ tr:last-child td{border-bottom:0}
 .sw{width:42px;height:24px;border-radius:20px;border:0;background:var(--line-strong);position:relative;cursor:pointer;flex:none;transition:background .2s}
 .sw i{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
 .sw.on{background:var(--accent)}.sw.on i{transform:translateX(18px)}
+.sw:disabled{opacity:.5;cursor:wait}.selfsw{display:inline-flex;align-items:center;gap:8px}
+@media (pointer:coarse){.sw{width:50px;height:28px}.sw i{width:22px;height:22px}.sw.on i{transform:translateX(22px)}}
 .autog{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:0}
 .crit{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border-right:1px solid var(--line)}
 .cr1{background:var(--surface);padding:12px 16px;display:grid;grid-template-columns:auto 1fr;gap:3px 8px;align-items:center}
@@ -780,7 +782,7 @@ function shell(){
   const tagSel=S.view!=='equipe'?'<select class="inp sm" id="tagf" data-change="tag" style="width:auto" aria-label="Filtrar por planilha"><option value="all">Todas as planilhas</option>'+allTags().map(g=>'<option value="'+esc(g)+'"'+(S.tag===g?' selected':'')+'>'+esc(g)+'</option>').join('')+'<option value="none"'+(S.tag==='none'?' selected':'')+'>Sem tag</option></select>':'';
   return'<div class="app"><aside class="nav"><div class="brand"><div class="mark">CC</div><div><b>Central Comercial</b><span>Grupo 3 Amores</span></div></div><div class="navlabel">Menu</div>'+nav+lumiCard+
    '<div class="foot"><div class="me" title="'+esc(S.me.name)+'">'+avatar(S.me.name)+'<div class="t"><b>'+esc(S.me.name)+'</b><small>'+(isAdmin()?'Administrador':'Na fila de atendimento')+'</small></div></div>'+statusBtns+'<div class="footlinks"><button class="linkbtn" data-act="notif" title="Notificações">'+ico('bell','sm')+'<span class="t">Notificações</span></button><button class="linkbtn" data-act="logout" title="Sair">'+ico('out','sm')+'<span class="t">Sair</span></button></div></div></aside>'+
-   '<main class="main"><header class="top"><div><h1>'+h+'</h1><div class="sub">'+sub+'</div></div><div class="grow"></div>'+tagSel+ownerSel+(S.me.in_queue&&st!=='online'?'<span class="chip warn">Você está '+STATUS[st][0].toLowerCase()+' e não recebe leads novos</span>':'')+'</header>'+
+   '<main class="main"><header class="top"><div><h1>'+h+'</h1><div class="sub">'+sub+'</div></div><div class="grow"></div>'+tagSel+ownerSel+(S.me.in_queue?'<label class="selfsw">'+(st==='online'?'<span class="chip accent">Recebendo leads</span>':'<span class="chip warn">Você está '+STATUS[st][0].toLowerCase()+' e não recebe leads novos</span>')+'<button class="sw'+(st==='online'?' on':'')+'" data-act="selfsw" role="switch" aria-checked="'+(st==='online')+'" title="Ativar ou desativar o recebimento de leads"><i></i></button></label>':'')+'</header>'+
    '<section class="view">'+(S.view==='inbox'?inbox():S.view==='funil'?funil():S.view==='lumi'?lumiView():S.view==='rel'?relView():equipe())+'</section></main></div>';
 }
 function loginView(){
@@ -994,10 +996,15 @@ function relView(){
    '</div>';
 }
 function equipe(){
-  const q=S.agents.filter(a=>a.in_queue).sort((a,b)=>a.queue_position-b.queue_position);
-  return'<div class="pad" style="display:grid;gap:16px;max-width:1100px;margin:0 auto"><p style="margin:0;color:var(--muted)">Cada lead novo vai para a próxima pessoa <b>online</b> da fila, em ordem. Quem está ocupado, ausente ou offline é pulado. Cliente que volta continua com a mesma pessoa.</p>'+
-   '<div class="card" style="overflow-x:auto"><table><thead><tr><th>Posição</th><th>Pessoa</th><th>Status</th><th>Leads abertos</th><th>Login</th></tr></thead><tbody>'+
-   q.map(a=>{const[n,c]=STATUS[a.status||'offline'];return'<tr><td class="mono">#'+a.queue_position+'</td><td><div class="row">'+avatar(a.name)+'<b>'+esc(a.name)+'</b></div></td><td><span class="chip"><span class="dot" style="background:'+c+'"></span>'+n+'</span>'+(a.status_at?' <small style="color:var(--faint)">desde '+fDT(a.status_at)+'</small>':'')+'</td><td class="mono">'+S.leads.filter(l=>l.owner_id===a.id&&!CLOSED.includes(l.stage)).length.toLocaleString('pt-BR')+'</td><td>'+(a.is_ai?'<span class="chip gold">'+ico('spark','sm')+'Agente de IA · sempre online</span>':a.user_id?'<span class="chip accent">Ativo</span>':'<span class="chip warn">Sem login</span>')+'</td></tr>'}).join('')+
+  const adm=isAdmin();
+  const cons=S.agents.filter(a=>a.role!=='admin');
+  const q=cons.filter(a=>a.in_queue).sort((a,b)=>a.queue_position-b.queue_position),off=cons.filter(a=>!a.in_queue).sort((a,b)=>a.name.localeCompare(b.name));
+  const row=a=>{const[n,c]=STATUS[a.status||'offline'];const on=a.status==='online',busy=S.busy&&S.busy[a.id];
+   const ctl=adm?'<td><button class="sw'+(a.in_queue?' on':'')+'" data-act="agq" data-id="'+a.id+'" role="switch" aria-checked="'+a.in_queue+'" title="Ativar ou desativar na fila"'+(busy?' disabled':'')+'><i></i></button></td><td>'+(a.in_queue?'<button class="sw'+(on?' on':'')+'" data-act="agon" data-id="'+a.id+'" role="switch" aria-checked="'+on+'" title="Colocar online ou offline"'+(busy?' disabled':'')+'><i></i></button>':'<small style="color:var(--faint)">—</small>')+'</td>':'';
+   return'<tr'+(a.in_queue?'':' style="opacity:.6"')+'><td class="mono">'+(a.in_queue?'#'+a.queue_position:'—')+'</td><td><div class="row">'+avatar(a.name)+'<b>'+esc(a.name)+'</b></div></td><td><span class="chip"><span class="dot" style="background:'+c+'"></span>'+(a.in_queue?n:'Desativado')+'</span>'+(a.in_queue&&a.status_at?' <small style="color:var(--faint)">desde '+fDT(a.status_at)+'</small>':'')+'</td><td class="mono">'+S.leads.filter(l=>l.owner_id===a.id&&!CLOSED.includes(l.stage)).length.toLocaleString('pt-BR')+'</td><td>'+(a.is_ai?'<span class="chip gold">'+ico('spark','sm')+'Agente de IA</span>':a.user_id?'<span class="chip accent">Com login</span>':'<span class="chip warn">Sem login</span>')+'</td>'+ctl+'</tr>'};
+  return'<div class="pad" style="display:grid;gap:16px;max-width:1100px;margin:0 auto"><p style="margin:0;color:var(--muted)">Cada lead novo vai para a próxima pessoa <b>online</b> da fila, em ordem. Quem está ocupado, ausente, offline ou desativado é pulado. Cliente que volta continua com a mesma pessoa.'+(adm?' <b>Na fila</b> ativa ou desativa o consultor; <b>Online</b> liga ou desliga o recebimento agora.':' Use a chave no topo da tela para ativar ou desativar o recebimento de leads.')+'</p>'+
+   '<div class="card" style="overflow-x:auto"><table><thead><tr><th>Posição</th><th>Pessoa</th><th>Status</th><th>Leads abertos</th><th>Login</th>'+(adm?'<th>Na fila</th><th>Online</th>':'')+'</tr></thead><tbody>'+
+   q.map(row).join('')+(adm?off.map(row).join(''):'')+
    '</tbody></table></div><p style="margin:0;color:var(--muted);font-size:12.5px">Administradores: '+S.agents.filter(a=>a.role==='admin').map(a=>esc(a.name)).join(', ')+'. Eles veem todos os leads e não entram na fila.</p></div>';
 }
 function modal(){
@@ -1034,6 +1041,12 @@ document.addEventListener('click',async e=>{
   else if(a==='togglecrm'){S.showCrm=!S.showCrm;render()}
   else if(a==='logout'){await sb.auth.signOut()}
   else if(a==='notif'){try{await Notification.requestPermission();toast('Notificações configuradas.')}catch(x){toast('Este navegador não permite notificações.',true)}}
+  else if(a==='selfsw'){const nv=(S.me.status||'offline')==='online'?'offline':'online';const {error}=await sb.rpc('crm_set_status',{p_status:nv});if(error)toast(error.message,true);else{S.me.status=nv;toast(nv==='online'?'Você está recebendo leads':'Você não recebe leads novos');render()}}
+  else if(a==='agq'||a==='agon'){const ag=S.agents.find(x=>x.id===id);if(!ag||!isAdmin())return;S.busy=S.busy||{};S.busy[id]=1;render();
+    const args=a==='agq'?{p_agent:id,p_in_queue:!ag.in_queue}:{p_agent:id,p_status:ag.status==='online'?'offline':'online'};
+    const {error}=await sb.rpc('crm_admin_set_agent',args);delete S.busy[id];
+    if(error)toast(error.message,true);else{const {data}=await sb.from('crm_agents').select('*').order('queue_position',{nullsFirst:false});if(data)S.agents=data;const n=S.agents.find(x=>x.id===id);toast(a==='agq'?(n.in_queue?n.name+' ativado na fila':n.name+' desativado'):(n.status==='online'?n.name+' online':n.name+' offline'))}
+    render()}
   else if(a==='status'){const {error}=await sb.rpc('crm_set_status',{p_status:v});if(error)toast(error.message,true);else{S.me.status=v;render()}}
   else if(a==='prio'){const l=L();const {error}=await sb.from('crm_leads').update({priority:!l.priority}).eq('id',l.id);if(error)toast(error.message,true)}
   else if(a==='lumi'){if(S.sel)askLumi(S.sel)}
