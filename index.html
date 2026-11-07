@@ -759,7 +759,7 @@ function render(){
   const keep={};document.querySelectorAll('[data-keep]').forEach(e=>keep[e.dataset.keep]=e.scrollTop);
   $('#app').innerHTML=shell();
   document.querySelectorAll('[data-keep]').forEach(e=>{if(keep[e.dataset.keep]!=null)e.scrollTop=keep[e.dataset.keep]});
-  if(id){const e=document.getElementById(id);if(e){if(val!=null)e.value=val;e.focus();try{e.setSelectionRange(ss,se)}catch(x){}}}
+  if(id){const e=document.getElementById(id);if(e){const own=id==='composer'&&e.value!==val;if(val!=null&&!own)e.value=val;e.focus();try{own?e.setSelectionRange(e.value.length,e.value.length):e.setSelectionRange(ss,se)}catch(x){}}}
   document.querySelectorAll('[data-mslot]').forEach(slot=>{const id=slot.dataset.mslot,src=slot.dataset.src,k=slot.dataset.kind;let n=S.mnodes[id];
     if(!n){n=document.createElement('div');n.className='mwrap';
       if(k==='audio'){n.innerHTML='<audio class="maud" controls preload="metadata"></audio><button class="speed" data-act="speed" data-id="'+id+'" title="Velocidade">1x</button>';n.querySelector('audio').src=src;n.querySelector('audio').playbackRate=S.rate}
