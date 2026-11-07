@@ -451,6 +451,23 @@ tr:last-child td{border-bottom:0}
 .qbtn{display:flex;gap:2px}.qbtn .btn{width:26px;height:26px;padding:0;font-size:10px}
 .qempty{border:1.5px dashed var(--line-strong);border-radius:11px;padding:16px;text-align:center;color:var(--faint);font-size:12.5px}
 @media (pointer:coarse){.qbtn .btn{width:34px;height:34px;font-size:12px}}
+.dd{position:relative}
+.ddb{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 10px 0 8px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:13px;cursor:pointer;max-width:240px;transition:border-color .15s,background .15s}
+.ddb:hover,.dd.open .ddb{border-color:var(--line-strong);background:var(--surface-2)}.ddb.act{border-color:var(--accent-line);background:var(--accent-soft)}
+.ddb>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}.ddc{color:var(--muted);flex:none;transition:transform .15s}.dd.open .ddc{transform:rotate(180deg)}
+.ddx{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;color:var(--muted)}.ddx:hover{background:var(--surface-3);color:var(--ink)}
+.ddm{position:absolute;right:0;top:calc(100% + 6px);z-index:60;width:300px;max-width:calc(100vw - 24px);background:var(--surface);border:1px solid var(--line-strong);border-radius:14px;box-shadow:0 18px 48px rgba(0,0,0,.35);overflow:hidden;animation:ddin .12s ease-out}
+@keyframes ddin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.dds{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);color:var(--muted)}.dds .inp{border:0;background:none;padding:4px 0;height:auto;box-shadow:none}
+.ddl{max-height:min(420px,60vh);overflow:auto;padding:6px}
+.ddo{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:0;border-radius:10px;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.ddo:hover{background:var(--surface-2)}.ddo.on{background:var(--accent-soft)}.ddo .icon,.ddo svg:last-child{color:var(--accent)}
+.ddt{display:grid;min-width:0;flex:1}.ddt b{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ddt small{color:var(--muted);font-size:12px}
+.ddav{position:relative;flex:none}.ddav i{position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;border:2px solid var(--surface)}
+.dddot{width:10px;height:10px;border-radius:50%;flex:none;margin:0 7px}.ddic{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--surface-2);color:var(--muted);flex:none}
+.avatar.xs{width:20px;height:20px;font-size:9px}
+@media (pointer:coarse){.ddb{height:40px}.ddo{padding:11px 10px}}
+@media (max-width:720px){.ddm{position:fixed;left:12px;right:12px;top:auto;bottom:12px;width:auto}}
 /* ---------- responsivo ---------- */
 @media (max-width:1440px){.inbox{grid-template-columns:310px minmax(0,1fr) 340px}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media (max-width:1320px){.kpis{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}.grid2{grid-template-columns:1fr}.grid2>.card{height:auto;max-height:520px}}
@@ -842,8 +859,8 @@ function shell(){
   const lumiCard=!LUMI_ON?'':'<button class="lumicard" data-act="nav" data-v="lumi">'+brain(48,!on)+'<div class="t"><b>Lumi <span class="live'+(on?'':' off')+'"></span></b><small>'+(on?'Analisando conversas 24 h · '+(S.ai.total_today||0)+' análises hoje':'Aguardando ativação da IA')+'</small></div></button>';
   const titles={dash:['Painel',isAdmin()?'Leads que chegaram no mês, por dia e por planilha':'Seus leads do mês, por dia e por planilha'],inbox:['Caixa de entrada',isAdmin()?'Todas as conversas do número de vendas':'Suas conversas'],funil:[isAdmin()?'Funil comercial':'Meu funil','Arraste os cartões entre as etapas'],lumi:['Lumi','Inteligência comercial que acompanha as conversas 24 horas'],rel:['Relatórios','Leads que chegam por dia, por consultor e por planilha'],equipe:['Equipe','Fila automática de distribuição']};
   const [h,sub]=titles[S.view];
-  const ownerSel=isAdmin()&&S.view!=='equipe'?'<select class="inp sm" id="ownerf" data-change="owner" style="width:auto" aria-label="Filtrar por consultor"><option value="all">Todos os consultores</option>'+S.agents.filter(a=>a.in_queue).map(a=>'<option value="'+a.id+'"'+(S.owner===a.id?' selected':'')+'>'+esc(a.name)+'</option>').join('')+'<option value="none"'+(S.owner==='none'?' selected':'')+'>Sem responsável</option></select>':'';
-  const tagSel=S.view!=='equipe'?'<select class="inp sm" id="tagf" data-change="tag" style="width:auto" aria-label="Filtrar por planilha"><option value="all">Todas as planilhas</option>'+allTags().map(g=>'<option value="'+esc(g)+'"'+(S.tag===g?' selected':'')+'>'+esc(g)+'</option>').join('')+'<option value="none"'+(S.tag==='none'?' selected':'')+'>Sem tag</option></select>':'';
+  const ownerSel=isAdmin()&&S.view!=='equipe'?ddMenu('owner',ico('users','sm'),[{v:'all',t:'Todos os consultores',sub:S.leads.length.toLocaleString('pt-BR')+' leads'},...S.agents.filter(a=>a.role!=='admin').sort((a,b)=>(b.in_queue-a.in_queue)||((a.status==='online'?0:1)-(b.status==='online'?0:1))||a.name.localeCompare(b.name)).map(a=>({v:a.id,t:a.name,av:a.name,dot:STATUS[a.status||'offline'][1],sub:(a.in_queue?STATUS[a.status||'offline'][0]:'Desativado')+' · '+S.leads.filter(l=>l.owner_id===a.id&&!CLOSED.includes(l.stage)).length.toLocaleString('pt-BR')+' abertos'})),{v:'none',t:'Sem responsável',sub:S.leads.filter(l=>!l.owner_id).length.toLocaleString('pt-BR')+' leads'}],S.owner,'Buscar consultor'):'';
+  const tagSel=S.view!=='equipe'&&S.view!=='dash'?ddMenu('tag',ico('file','sm'),[{v:'all',t:'Todas as origens'},...allTags().map(g=>({v:g,t:g,dot:srcColor(g),sub:S.leads.filter(l=>srcName(l)===g).length.toLocaleString('pt-BR')+' leads'}))],S.tag,'Buscar origem'):'';
   return'<div class="app"><aside class="nav"><div class="brand"><div class="mark">CC</div><div><b>Central Comercial</b><span>Grupo 3 Amores</span></div></div><div class="navlabel">Menu</div>'+nav+lumiCard+
    '<div class="foot"><div class="me" title="'+esc(S.me.name)+'">'+avatar(S.me.name)+'<div class="t"><b>'+esc(S.me.name)+'</b><small>'+(isAdmin()?'Administrador':'Na fila de atendimento')+'</small></div></div>'+statusBtns+'<div class="footlinks"><button class="linkbtn" data-act="notif" title="Notificações">'+ico('bell','sm')+'<span class="t">Notificações</span></button><button class="linkbtn" data-act="logout" title="Sair">'+ico('out','sm')+'<span class="t">Sair</span></button></div></div></aside>'+
    '<main class="main"><header class="top"><div><h1>'+h+'</h1><div class="sub">'+sub+'</div></div><div class="grow"></div>'+tagSel+ownerSel+(S.me.in_queue?'<label class="selfsw">'+(st==='online'?'<span class="chip accent">Recebendo leads</span>':'<span class="chip warn">Você está '+STATUS[st][0].toLowerCase()+' e não recebe leads novos</span>')+'<button class="sw'+(st==='online'?' on':'')+'" data-act="selfsw" role="switch" aria-checked="'+(st==='online')+'" title="Ativar ou desativar o recebimento de leads"><i></i></button></label>':'')+'</header>'+
@@ -857,8 +874,15 @@ function loginView(){
 }
 const TAGC={'Cerejeiras':'#c2417a','3 Amores':'#b7791f','Site grupo3amores.com.br':'#2b6cb0','Formulário Experience':'#6b46c1'};
 function tagChips(l){return(l.tags||[]).map(g=>'<span class="chip tag" style="--tc:'+(TAGC[g]||'#5b6470')+'">'+esc(g)+'</span>').join('')}
-function allTags(){const s=new Set(Object.keys(TAGC));S.leads.forEach(l=>(l.tags||[]).forEach(g=>s.add(g)));return[...s]}
-function visible(){let L=S.leads;if(isAdmin()&&S.owner!=='all')L=L.filter(l=>S.owner==='none'?!l.owner_id:l.owner_id===S.owner);if(S.tag!=='all')L=L.filter(l=>S.tag==='none'?!(l.tags||[]).length:(l.tags||[]).includes(S.tag));return L}
+function allTags(){const c={};S.leads.forEach(l=>{const g=srcName(l);c[g]=(c[g]||0)+1});return Object.keys(c).sort((a,b)=>c[b]-c[a])}
+function ddMenu(key,icon,opts,cur,ph){
+  const sel=opts.find(o=>o.v===cur)||opts[0],open=S.dd===key,q=(S.ddq||'').toLowerCase();
+  const list=open?opts.filter(o=>!q||o.t.toLowerCase().includes(q)):[];
+  return'<div class="dd'+(open?' open':'')+'" data-dd="'+key+'"><button class="ddb'+(sel.v!=='all'?' act':'')+'" data-act="ddopen" data-v="'+key+'" aria-haspopup="listbox" aria-expanded="'+open+'">'+(sel.av?avatar(sel.av,'xs'):icon)+'<span>'+esc(sel.t)+'</span>'+(sel.v!=='all'?'<i class="ddx" data-act="ddpick" data-v="'+key+'" data-id="all" title="Limpar">'+ico('x','sm')+'</i>':'')+'<svg class="ddc" viewBox="0 0 24 24" width="14" height="14"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>'+
+   (open?'<div class="ddm" role="listbox">'+(opts.length>6?'<div class="dds">'+ico('search','sm')+'<input class="inp" id="ddq" placeholder="'+esc(ph||'Buscar')+'" data-input="ddq" value="'+esc(S.ddq||'')+'" autocomplete="off"></div>':'')+
+     '<div class="ddl">'+(list.map(o=>'<button class="ddo'+(o.v===cur?' on':'')+'" role="option" data-act="ddpick" data-v="'+key+'" data-id="'+esc(o.v)+'">'+(o.av?'<span class="ddav">'+avatar(o.av,'sm')+(o.dot?'<i style="background:'+o.dot+'"></i>':'')+'</span>':o.dot?'<span class="dddot" style="background:'+o.dot+'"></span>':'<span class="ddic">'+icon+'</span>')+'<span class="ddt"><b>'+esc(o.t)+'</b>'+(o.sub?'<small>'+esc(o.sub)+'</small>':'')+'</span>'+(o.v===cur?ico('check','sm'):'')+'</button>').join('')||'<div class="qempty">Nada encontrado</div>')+'</div></div>':'')+'</div>';
+}
+function visible(){let L=S.leads;if(isAdmin()&&S.owner!=='all')L=L.filter(l=>S.owner==='none'?!l.owner_id:l.owner_id===S.owner);if(S.tag!=='all')L=L.filter(l=>srcName(l)===S.tag);return L}
 function tempBadge(l){const i=S.ins[l.id];if(!i||!i.temperature)return'';return'<span class="temp '+i.temperature+'" title="Lumi: lead '+i.temperature+', '+(i.score||0)+'% de chance">'+(i.temperature==='quente'?ico('flame','sm'):'')+(i.score??'')+'</span>'}
 function convItem(l){
   const silent=t(l.last_out_at)>t(l.last_in_at)&&!CLOSED.includes(l.stage)?(Date.now()-t(l.last_out_at))/H:0;
@@ -1123,7 +1147,7 @@ function equipe(){
   const card=(a,col,i)=>{const[n,c]=STATUS[a.status||'offline'];const busy=S.busy&&S.busy[a.id];
     return'<div class="qcard'+(busy?' busy':'')+'" data-ag="'+a.id+'"'+(adm?' draggable="true"':'')+'>'+
       (col==='on'?'<span class="qpos mono">'+(i+1)+'º</span>':'')+avatar(a.name,'sm')+
-      '<span class="qn"><b>'+esc(a.name)+'</b><small><span class="dot" style="background:'+c+'"></span>'+(col==='off'?'Desativado':n)+' · '+openN(a).toLocaleString('pt-BR')+' abertos</small></span>'+
+      '<span class="qn"><b>'+esc(a.name)+'</b><small><span class="dot" style="background:'+c+'"></span>'+(col==='off'?'Desativado':n)+(adm||a.id===S.me.id?' · '+openN(a).toLocaleString('pt-BR')+' abertos':'')+'</small></span>'+
       (col==='on'&&i===0?'<span class="chip accent">Próximo lead</span>':'')+
       (adm&&col!=='off'?'<span class="qbtn"><button class="btn icon sm" data-act="qmove" data-id="'+a.id+'" data-v="-1" title="Subir na fila" aria-label="Subir">▲</button><button class="btn icon sm" data-act="qmove" data-id="'+a.id+'" data-v="1" title="Descer na fila" aria-label="Descer">▼</button></span>':'')+
       (adm?'<button class="sw'+(col==='on'?' on':'')+'" data-act="'+(col==='off'?'agq':'agon')+'" data-id="'+a.id+'" role="switch" aria-checked="'+(col==='on')+'" title="'+(col==='off'?'Ativar na fila':'Online / offline')+'"'+(busy?' disabled':'')+'><i></i></button>':'')+'</div>'};
@@ -1177,10 +1201,13 @@ document.addEventListener('submit',async e=>{
 });
 document.addEventListener('pointerdown',e=>{const b=e.target.closest&&e.target.closest('[data-act="rec"]');if(b)micWarm()},{passive:true});
 document.addEventListener('click',async e=>{
+  if(S.dd&&!(e.target.closest&&e.target.closest('.dd'))){S.dd=null;S.ddq='';render()}
   const el=e.target.closest('[data-act]');if(!el)return;const a=el.dataset.act,v=el.dataset.v,id=el.dataset.id;
   if(e.target.closest('select'))return;
   if(el.tagName==='A')e.preventDefault();
   const L=()=>S.leads.find(x=>x.id===S.sel);
+  if(a==='ddopen'){S.dd=S.dd===v?null:v;S.ddq='';render();if(S.dd)setTimeout(()=>{const q=$('#ddq');if(q)q.focus()},0);return}
+  if(a==='ddpick'){e.stopPropagation();if(v==='owner')S.owner=id;else if(v==='tag')S.tag=id;S.dd=null;S.ddq='';S.lim=300;S.picked=false;if(S.view==='inbox')S.sel=null;render();return}
   if(a==='nav'){if(v==='inbox'&&S.view!=='inbox')S.picked=false;S.view=v;render();if(v==='equipe')refreshQueue()}
   else if(a==='qmove'){const Q=qOrder(),ag=S.agents.find(x=>x.id===id);const list=Q.on.includes(ag)?Q.on:Q.pause;const k=list.indexOf(ag),n=k+(+v);if(k<0||n<0||n>=list.length)return;list.splice(k,1);list.splice(n,0,ag);S.busy=S.busy||{};S.busy[id]=1;render();await qApply([...Q.on,...Q.pause]);delete S.busy[id];render()}
   else if(a==='more'){S.lim+=300;render()}
@@ -1249,7 +1276,7 @@ document.addEventListener('click',async e=>{
   else if(a==='lostok'){let r=$('#lostr').value;const d=$('#lostt').value.trim();if(d)r+=' · '+d;const id2=S.modal.id;S.modal=null;await moveStage(id2,'perdido',r)}
   else if(a==='wonok'){const val=Number($('#wonv').value)||0;const id2=S.modal.id;S.modal=null;await moveStage(id2,'ganho',null,val)}
 });
-document.addEventListener('input',e=>{const k=e.target.dataset.input;if(k==='q'){S.q=e.target.value;schedule()}else if(k==='draft')S.draft=e.target.value;else if(k==='dq'){S.dq=e.target.value;schedule()}});
+document.addEventListener('input',e=>{const k=e.target.dataset.input;if(k==='q'){S.q=e.target.value;schedule()}else if(k==='draft')S.draft=e.target.value;else if(k==='dq'){S.dq=e.target.value;schedule()}else if(k==='ddq'){S.ddq=e.target.value;schedule()}});
 document.addEventListener('change',async e=>{
   const el=e.target;
   if(el.dataset.field){const l=S.leads.find(x=>x.id===S.sel);let v=el.value;if(el.type==='number')v=v===''?null:Number(v);if(v==='')v=null;
@@ -1260,7 +1287,7 @@ document.addEventListener('change',async e=>{
   else if(k==='owner'){S.owner=el.value;render()}
   else if(k==='tag'){S.tag=el.value;render()}
 });
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='composer'&&!e.shiftKey&&!e.altKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();const b=document.querySelector('[data-act="send"]');if(b&&!b.disabled)b.click()}if(e.key==='Escape'&&S.modal){S.modal=null;render()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.dd){S.dd=null;S.ddq='';render();return}if(e.key==='Enter'&&e.target.id==='ddq'){const b=document.querySelector('.ddo');if(b){e.preventDefault();b.click()}return}if(e.key==='Enter'&&e.target.id==='composer'&&!e.shiftKey&&!e.altKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();const b=document.querySelector('[data-act="send"]');if(b&&!b.disabled)b.click()}if(e.key==='Escape'&&S.modal){S.modal=null;render()}});
 document.addEventListener('change',e=>{if(e.target.id==='filepick'){addFiles(e.target.files);e.target.value=''}});
 document.addEventListener('paste',e=>{if(!S.sel||S.mode!=='out')return;const fs=[...(e.clipboardData&&e.clipboardData.files||[])];if(fs.length){e.preventDefault();addFiles(fs)}});
 const isFileDrag=e=>e.dataTransfer&&[...e.dataTransfer.types].includes('Files');
