@@ -787,7 +787,7 @@ async function runSendQ(){
       // Se a rede caiu depois que o servidor já enviou, não manda duplicado: confere antes de tentar de novo
       let first=true;
       const data=await withRetry(async()=>{
-        if(!first){const {data:ex}=await sb.from('crm_messages').select('id,wamid').eq('media_path',path).limit(1);if(ex&&ex.length)return{wamid:ex[0].wamid}}
+        if(!first){const {data:ex}=await sb.from('crm_messages').select('id,wamid').eq('media_path',path).neq('status','failed').limit(1);if(ex&&ex.length)return{wamid:ex[0].wamid}}
         first=false;
         const {data,error}=await sb.functions.invoke('crm-send',{body:{lead_id:l.id,media:{path,name:f.name,mime:f.mime,size:f.size},caption}});
         if(error||data?.error){let msg=data?.error;try{msg=msg||(await error.context.json()).error}catch(x){}throw new Error(msg||(error&&error.message)||'Não foi possível enviar.')}
