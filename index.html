@@ -867,6 +867,8 @@ function render(){
     morphdom(app,nx,{getNodeKey:n=>n.nodeType===1?(n.id||n.getAttribute('data-k')||undefined):undefined,
       onBeforeElUpdated:(f,t)=>{if(f.hasAttribute&&f.hasAttribute('data-mslot')&&f.getAttribute('data-src')===t.getAttribute('data-src'))return false;if(f.tagName==='IMG'&&f.getAttribute('src')===t.getAttribute('src')&&f.className===t.className)return false;return !f.isEqualNode(t)}})}
   else app.innerHTML=html;
+  // A caixa de texto sempre reflete S.draft (o morphdom pode pular a textarea e deixar o texto já enviado nela)
+  {const cmp=document.getElementById('composer');if(cmp&&cmp.value!==S.draft)cmp.value=S.draft}
   document.querySelectorAll('[data-keep]').forEach(e=>{if(keep[e.dataset.keep]!=null)e.scrollTop=keep[e.dataset.keep]});
   if(id){const e=document.getElementById(id);if(e){const own=id==='composer'&&e.value!==val;if(val!=null&&!own)e.value=val;e.focus();try{own?e.setSelectionRange(e.value.length,e.value.length):e.setSelectionRange(ss,se)}catch(x){}}}
   document.querySelectorAll('[data-mslot]').forEach(slot=>{const id=slot.dataset.mslot,src=slot.dataset.src,k=slot.dataset.kind;let n=S.mnodes[id];
