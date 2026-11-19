@@ -128,6 +128,7 @@ textarea.inp{resize:vertical}
 .field{display:grid;gap:5px;min-width:0}
 .field label{font-size:10.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
 .chip{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:2px 9px;font-size:11.5px;font-weight:500;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.src{color:var(--tc);border-color:color-mix(in srgb,var(--tc) 30%,transparent);background:color-mix(in srgb,var(--tc) 8%,transparent);font-weight:600}
 .chip.tag{color:var(--tc);border-color:color-mix(in srgb,var(--tc) 30%,transparent);background:color-mix(in srgb,var(--tc) 8%,transparent)}
 .chip.warn{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
 .chip.crit{background:var(--crit-soft);border-color:transparent;color:var(--crit)}
@@ -911,6 +912,7 @@ function loginView(){
   (S.err?'<div class="err">'+esc(S.err)+'</div>':'')+'<button class="btn pri" type="submit" style="justify-content:center;padding:10px">Entrar</button></form></div>';
 }
 const TAGC={'Cerejeiras':'#c2417a','3 Amores':'#b7791f','Site grupo3amores.com.br':'#2b6cb0','Formulário Experience':'#6b46c1'};
+function srcChip(l){const n=srcName(l);return'<span class="chip src" style="--tc:'+srcColor(n)+'" title="Origem do lead">'+esc(n)+'</span>'}
 function tagChips(l){return(l.tags||[]).map(g=>'<span class="chip tag" style="--tc:'+(TAGC[g]||'#5b6470')+'">'+esc(g)+'</span>').join('')}
 function allTags(){const c={};S.leads.forEach(l=>{const g=srcName(l);c[g]=(c[g]||0)+1});return Object.keys(c).sort((a,b)=>c[b]-c[a])}
 function ddMenu(key,icon,opts,cur,ph){
@@ -927,7 +929,7 @@ function convItem(l){
   const i=S.ins[l.id];
   return'<button class="conv'+(S.sel===l.id?' on':'')+(l.unread?' unread':'')+'" data-k="c'+l.id+'" data-act="open" data-id="'+l.id+'">'+avatar(l.name||l.phone)+'<div class="cbody"><div class="ctop"><b>'+esc(l.name||phone(l.phone))+'</b>'+tempBadge(l)+'<span class="ctime">'+fTime(l.last_msg_at)+'</span></div>'+
   '<div class="row" style="flex-wrap:nowrap"><span class="cmsg">'+esc(l.last_msg||'')+'</span>'+(l.unread?'<span class="badge">'+l.unread+'</span>':'')+'</div>'+
-  '<div class="row" style="gap:5px"><span class="chip"><span class="dot" style="background:'+ST[l.stage].c+'"></span>'+ST[l.stage].name+'</span>'+tagChips(l)+(isAdmin()?'<span class="chip">'+esc(agentName(l.owner_id))+'</span>':'')+(waiting(l)?'<span class="chip warn">Aguardando resposta</span>':'')+(silent>=24?'<span class="chip crit">'+Math.floor(silent)+' h sem retorno</span>':'')+(i&&i.risk_level==='alto'&&!CLOSED.includes(l.stage)?'<span class="chip crit">'+ico('alert','sm')+'Risco</span>':'')+(l.priority?'<span class="chip crit">Prioridade</span>':'')+'</div></div></button>';
+  '<div class="row" style="gap:5px"><span class="chip"><span class="dot" style="background:'+ST[l.stage].c+'"></span>'+ST[l.stage].name+'</span>'+srcChip(l)+tagChips(l)+(isAdmin()?'<span class="chip">'+esc(agentName(l.owner_id))+'</span>':'')+(waiting(l)?'<span class="chip warn">Aguardando resposta</span>':'')+(silent>=24?'<span class="chip crit">'+Math.floor(silent)+' h sem retorno</span>':'')+(i&&i.risk_level==='alto'&&!CLOSED.includes(l.stage)?'<span class="chip crit">'+ico('alert','sm')+'Risco</span>':'')+(l.priority?'<span class="chip crit">Prioridade</span>':'')+'</div></div></button>';
 }
 function inbox(){
   const q=S.q.toLowerCase();let L=visible();
@@ -1005,7 +1007,7 @@ function ficha(l){
   const f=(k,lab,type)=>'<div class="field"><label for="f-'+k+'">'+lab+'</label>'+(type==='area'?'<textarea class="inp sm" id="f-'+k+'" data-field="'+k+'" rows="3" placeholder="Não informado">'+esc(l[k]||'')+'</textarea>':'<input class="inp sm" id="f-'+k+'" data-field="'+k+'"'+(type?' type="'+type+'"':'')+' value="'+esc(l[k]??'')+'" placeholder="Não informado">')+'</div>';
   const hist=S.hist.slice(0,15).map(h=>'<div>'+(h.k==='a'?(h.reason==='round_robin'?'Distribuído pela fila para ':h.reason==='retorno'?'Cliente voltou: ficou com ':'Transferido para ')+esc(agentName(h.to_agent))+(h.reason.startsWith('transferencia')&&h.reason.length>15?' ('+esc(h.reason.slice(15))+')':''):esc(ST[h.from_stage]?.name||'')+' → '+esc(ST[h.to_stage]?.name||'')+(h.note?' · '+esc(h.note):''))+'<small>'+fDT(h.created_at)+'</small></div>').join('');
   return'<div class="pane crm" data-keep="crm">'+lumiCard(l)+'<div class="sec"><div class="row" style="justify-content:space-between"><h3>Ficha do cliente</h3><button class="btn sm ghost fichabtn" data-act="togglecrm">Fechar</button></div>'+
-   '<div class="row"><span class="chip accent">'+esc(agentName(l.owner_id))+'</span><span class="chip">desde '+fD(l.created_at)+'</span>'+tagChips(l)+'<button class="chip'+(l.priority?' crit':'')+'" data-act="prio" style="cursor:pointer">'+(l.priority?'Prioridade alta':'Marcar prioridade')+'</button></div>'+
+   '<div class="row"><span class="chip accent">'+esc(agentName(l.owner_id))+'</span><span class="chip">desde '+fD(l.created_at)+'</span>'+srcChip(l)+tagChips(l)+'<button class="chip'+(l.priority?' crit':'')+'" data-act="prio" style="cursor:pointer">'+(l.priority?'Prioridade alta':'Marcar prioridade')+'</button></div>'+
    '<div class="kv">'+f('name','Nome')+'<div class="field"><label>Telefone</label><div class="inp sm mono" style="background:var(--surface-2)">'+phone(l.phone)+'</div></div>'+
    f('event_type','Tipo de evento')+f('event_date','Data do evento','date')+f('guests','Convidados','number')+f('budget','Orçamento (R$)','number')+f('proposal_value','Proposta (R$)','number')+f('source','Origem')+
    '<div class="full">'+f('notes','Observações internas','area')+'</div></div>'+(l.stage==='perdido'?'<div class="chip crit">Motivo: '+esc(l.lost_reason||'')+'</div>':'')+(l.stage==='ganho'&&l.won_value?'<div class="chip accent">Contratado: R$ '+Number(l.won_value).toLocaleString('pt-BR')+'</div>':'')+'</div>'+
@@ -1026,7 +1028,7 @@ function kcard(l){
   return'<div class="kc'+(l.priority?' prio':'')+'" draggable="'+(!TOUCH)+'" data-lead="'+l.id+'" data-act="open" data-id="'+l.id+'">'+
    '<div class="kt">'+avatar(l.name||l.phone,'sm')+'<div class="kn"><b>'+esc(l.name||phone(l.phone))+'</b><small>'+esc(sub)+'</small></div>'+(i&&i.stage_action==='moved'&&i.stage_to===l.stage?'<span class="lmv" title="'+esc('Movido pela Lumi: '+(i.stage_reason||''))+'">'+ico('spark','sm')+'</span>':'')+(waiting(l)?'<span class="wdot" title="Cliente aguardando resposta"></span>':'')+tempBadge(l)+'</div>'+
    (i&&i.next_step&&!CLOSED.includes(l.stage)?'<div class="tip" title="'+esc(i.next_step)+'">'+ico('bulb','sm')+'<span>'+esc(i.next_step)+'</span></div>':'')+
-   '<div class="kf"><div class="tg">'+tagChips({tags})+'</div>'+
+   '<div class="kf"><div class="tg">'+srcChip(l)+tagChips({tags})+'</div>'+
    (isAdmin()&&l.owner_id?'<span title="'+esc(agentName(l.owner_id))+'">'+avatar(agentName(l.owner_id),'xs')+'</span>':'')+
    '<span class="when" title="Última mensagem">'+ico('clock','sm')+rel(l.last_msg_at)+'</span></div>'+
    (TOUCH?'<select class="inp sm kmove" data-move="'+l.id+'" aria-label="Mover para etapa">'+STAGES.map(st=>'<option value="'+st[0]+'"'+(st[0]===l.stage?' selected':'')+'>'+(st[0]===l.stage?'Etapa: ':'Mover para ')+st[1]+'</option>').join('')+'</select>':'')+'</div>';
@@ -1169,7 +1171,7 @@ function relView(){
    '<div class="card"><div class="ch">'+ico('file')+'<b>Por planilha hoje</b><span class="cr">'+hoje+' leads</span></div><div class="plist">'+
      (Object.entries(tg).sort((a,b)=>b[1]-a[1]).map(([g,n])=>'<div class="arow">'+(g==='Sem tag'?'<span class="chip">Sem tag</span>':tagChips({tags:[g]}))+'<span class="grow"></span><span class="mono an">'+n+'</span></div>').join('')||'<div class="empty"><span>Nenhum lead hoje ainda.</span></div>')+'</div></div></div>'+
    '<div class="card"><div class="ch">'+ico('chat')+'<b>Leads de hoje</b><span class="cr">'+todayL.length+'</span></div><div class="plist tday">'+
-     (todayL.map(l=>'<button class="prio-item" data-act="open" data-id="'+l.id+'">'+avatar(l.name||l.phone)+'<div style="min-width:0"><div class="row" style="gap:6px"><b style="font-size:13.5px">'+esc(l.name||phone(l.phone))+'</b><span class="chip"><span class="dot" style="background:'+ST[l.stage].c+'"></span>'+ST[l.stage].name+'</span>'+tagChips(l)+(isAdmin()?'<span class="chip">'+esc(agentName(l.owner_id))+'</span>':'')+'</div><p>'+esc([l.event_type,l.guests?l.guests+' convidados':''].filter(Boolean).join(' · ')||phone(l.phone))+'</p></div><span class="mono muted" style="font-size:12px">'+fTime(l.created_at)+'</span></button>').join('')||'<div class="empty"><span>Nenhum lead hoje ainda.</span></div>')+'</div></div>'+
+     (todayL.map(l=>'<button class="prio-item" data-act="open" data-id="'+l.id+'">'+avatar(l.name||l.phone)+'<div style="min-width:0"><div class="row" style="gap:6px"><b style="font-size:13.5px">'+esc(l.name||phone(l.phone))+'</b><span class="chip"><span class="dot" style="background:'+ST[l.stage].c+'"></span>'+ST[l.stage].name+'</span>'+srcChip(l)+tagChips(l)+(isAdmin()?'<span class="chip">'+esc(agentName(l.owner_id))+'</span>':'')+'</div><p>'+esc([l.event_type,l.guests?l.guests+' convidados':''].filter(Boolean).join(' · ')||phone(l.phone))+'</p></div><span class="mono muted" style="font-size:12px">'+fTime(l.created_at)+'</span></button>').join('')||'<div class="empty"><span>Nenhum lead hoje ainda.</span></div>')+'</div></div>'+
    '</div>';
 }
 // Fila: quem está online fica na frente, na ordem em que vai receber; o admin arrasta para reordenar (estilo kanban)
